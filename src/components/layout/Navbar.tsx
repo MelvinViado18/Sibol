@@ -5,15 +5,41 @@ import { useState } from "react";
 import { Menu, X, Wallet, ShoppingBag, Leaf, LayoutDashboard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { ethers } from "ethers";
 
 export function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
   const [address, setAddress] = useState("");
+  const [chainName, setChainName] = useState("");
 
-  const connectWallet = () => {
-    setIsConnected(true);
-    setAddress("0x71C...3d2E");
+  const connectWallet = async () => {
+    if (typeof window === "undefined" || !(window as any).ethereum) {
+      alert("No Web3 wallet found. Install MetaMask to connect.");
+      return;
+    }
+
+    try {
+      const provider = new ethers.BrowserProvider((window as any).ethereum);
+      await provider.send("eth_requestAccounts", []);
+
+      const signer = await provider.getSigner();
+      const connectedAddress = await signer.getAddress();
+      const network = await provider.getNetwork();
+      const chainId = Number(network.chainId);
+      const networkName = chainId === 8453 ? "Base" : chainId === 1 ? "Ethereum" : `Chain ${chainId}`;
+
+      setAddress(`${connectedAddress.substring(0, 6)}...${connectedAddress.slice(-4)}`);
+      setChainName(networkName);
+      setIsConnected(true);
+
+      if (chainId !== 8453 && chainId !== 1) {
+        alert(`Connected to ${networkName} (${network.chainId}). For Base switch network to chainId 8453.`);
+      }
+    } catch (error) {
+      console.error("Wallet connect failed", error);
+      alert("Wallet connection failed. Check console for details.");
+    }
   };
 
   const navLinks = [

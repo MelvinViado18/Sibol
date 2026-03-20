@@ -9,14 +9,15 @@ import { Progress } from "@/components/ui/progress";
 import { 
   ShoppingBag, 
   ShieldCheck, 
-  MapPin, 
+  MapPin,
   Calendar, 
   Star, 
   Truck, 
   Lock,
   Users,
   MessageCircle,
-  ChevronRight
+  ChevronRight,
+  Leaf
 } from "lucide-react";
 import Image from "next/image";
 import { useToast } from "@/hooks/use-toast";
