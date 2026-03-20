@@ -1,169 +1,272 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, useMemo } from "react";
 import { Navbar } from "@/components/layout/Navbar";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { 
-  Package, 
-  Truck, 
-  CheckCircle, 
-  Clock, 
-  Eye,
+import {
+  Package,
+  Truck,
+  CheckCircle2,
+  Clock3,
   ChevronRight,
-  Loader2
+  Loader2,
+  Lock,
+  Store,
+  AlertCircle,
 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
-import { useAuth } from "@/providers/AuthProvider";
 
 const ORDERS_STORAGE_KEY = "sibol_orders";
 
-const STATUS_CONFIG = {
-  pending: { label: "Pending", color: "bg-yellow-100 text-yellow-800", icon: Clock },
-  confirmed: { label: "Confirmed", color: "bg-blue-100 text-blue-800", icon: Package },
-  in_transit: { label: "In Transit", color: "bg-purple-100 text-purple-800", icon: Truck },
-  delivered: { label: "Delivered", color: "bg-green-100 text-green-800", icon: CheckCircle },
+const STATUS_CONFIG: Record<
+  string,
+  {
+    label: string;
+    color: string;
+    icon: any;
+    trackingText: (order: any) => string;
+  }
+> = {
+  paid_escrow: {
+    label: "Paid in Escrow",
+    color: "bg-blue-100 text-blue-800",
+    icon: Lock,
+    trackingText: () => "Payment secured. Waiting for cooperative confirmation.",
+  },
+  awaiting_farmer_confirmation: {
+    label: "Awaiting Confirmation",
+    color: "bg-amber-100 text-amber-800",
+    icon: Clock3,
+    trackingText: () => "The cooperative is reviewing your order.",
+  },
+  preparing: {
+    label: "Preparing",
+    color: "bg-yellow-100 text-yellow-800",
+    icon: Package,
+    trackingText: () => "Your rice order is being prepared for shipment.",
+  },
+  shipped: {
+    label: "Shipped",
+    color: "bg-purple-100 text-purple-800",
+    icon: Truck,
+    trackingText: () => "Your order is on the way. Estimated delivery: 2–3 days.",
+  },
+  delivered: {
+    label: "Delivered",
+    color: "bg-green-100 text-green-800",
+    icon: CheckCircle2,
+    trackingText: (order) =>
+      `Delivered on ${new Date(order.updatedAt || order.date).toLocaleDateString()}.`,
+  },
+  completed: {
+    label: "Completed",
+    color: "bg-emerald-100 text-emerald-800",
+    icon: CheckCircle2,
+    trackingText: () => "Delivery confirmed and escrow has been released.",
+  },
+  disputed: {
+    label: "Disputed",
+    color: "bg-red-100 text-red-800",
+    icon: AlertCircle,
+    trackingText: () => "There is an issue with this order. Payment remains on hold.",
+  },
+
+  // fallback support for older orders
+  pending: {
+    label: "Pending",
+    color: "bg-yellow-100 text-yellow-800",
+    icon: Clock3,
+    trackingText: () => "Your order is pending.",
+  },
+  confirmed: {
+    label: "Confirmed",
+    color: "bg-blue-100 text-blue-800",
+    icon: Package,
+    trackingText: () => "Order confirmed and waiting for pickup.",
+  },
+  in_transit: {
+    label: "In Transit",
+    color: "bg-purple-100 text-purple-800",
+    icon: Truck,
+    trackingText: () => "Your order is on the way. Estimated delivery: 2–3 days.",
+  },
 };
 
+const FILTERS = [
+  "all",
+  "paid_escrow",
+  "preparing",
+  "shipped",
+  "delivered",
+  "completed",
+];
+
 export default function OrdersPage() {
-  const { user, isLoading: authLoading } = useAuth();
-  const router = useRouter();
-  const [orders, setOrders] = useState([]);
+  const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("all");
 
   useEffect(() => {
-    if (!authLoading && !user) {
-      router.push("/auth");
-    }
-  }, [user, authLoading, router]);
-
-  useEffect(() => {
     const loadOrders = () => {
-      const storedOrders = localStorage.getItem(ORDERS_STORAGE_KEY);
-      if (storedOrders) {
-        setOrders(JSON.parse(storedOrders));
+      try {
+        const storedOrders = localStorage.getItem(ORDERS_STORAGE_KEY);
+        if (storedOrders) {
+          const parsed = JSON.parse(storedOrders);
+          setOrders(Array.isArray(parsed) ? parsed : []);
+        }
+      } catch (error) {
+        console.error("Failed to load orders:", error);
+        setOrders([]);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
-    
+
     loadOrders();
   }, []);
 
-  if (authLoading || loading) {
+  const filteredOrders = useMemo(() => {
+    return orders.filter((order) => filter === "all" || order.status === filter);
+  }, [orders, filter]);
+
+  if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="flex min-h-screen items-center justify-center bg-[#F6EEDC]">
+        <Loader2 className="h-8 w-8 animate-spin text-[#2E6C3C]" />
       </div>
     );
   }
 
-  if (!user) {
-    return null;
-  }
-
-  const filteredOrders = orders.filter((order: any) => 
-    filter === "all" || order.status === filter
-  );
-
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-[#F6EEDC] text-[#3C2A18]">
       <Navbar />
-      
-      <div className="container mx-auto px-4 py-8">
-        <div className="max-w-4xl mx-auto">
-          <h1 className="text-3xl font-bold mb-2">My Orders</h1>
-          <p className="text-muted-foreground mb-6">Track and manage your orders</p>
 
-          {/* Filter Tabs */}
-          <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
-            {["all", "pending", "in_transit", "delivered"].map(status => (
+      <div className="container mx-auto px-4 py-8">
+        <div className="mx-auto max-w-5xl">
+          <h1 className="mb-2 text-3xl font-black text-[#2F1F10]">My Orders</h1>
+          <p className="mb-6 text-[#7A6547]">Track your escrow payments and delivery progress</p>
+
+          <div className="mb-6 flex gap-2 overflow-x-auto pb-2">
+            {FILTERS.map((status) => (
               <Button
                 key={status}
                 variant={filter === status ? "default" : "outline"}
                 onClick={() => setFilter(status)}
-                className="capitalize"
+                className={`capitalize whitespace-nowrap ${
+                  filter === status
+                    ? "bg-[#2E6C3C] text-white hover:bg-[#285D35]"
+                    : "border-[#D7C29B] bg-white text-[#5E472F] hover:bg-[#F5EEDC]"
+                }`}
               >
-                {status === "all" ? "All Orders" : 
-                 status === "in_transit" ? "In Transit" : status}
+                {status === "all"
+                  ? "All Orders"
+                  : status === "paid_escrow"
+                  ? "Paid in Escrow"
+                  : status}
               </Button>
             ))}
           </div>
 
-          {/* Orders List */}
           {filteredOrders.length > 0 ? (
             <div className="space-y-4">
-              {filteredOrders.map((order: any) => {
-                const StatusIcon = STATUS_CONFIG[order.status as keyof typeof STATUS_CONFIG]?.icon || Package;
-                
+              {filteredOrders.map((order) => {
+                const config = STATUS_CONFIG[order.status] || STATUS_CONFIG.pending;
+                const StatusIcon = config.icon;
+
+                // support both old shape (items[]) and new shape (item)
+                const items = order.items || (order.item ? [order.item] : []);
+
                 return (
-                  <Card key={order.id} className="hover:shadow-md transition-shadow">
+                  <Card
+                    key={order.id}
+                    className="rounded-[26px] border-[2px] border-[#D7C29B] bg-[#FFF9EC] shadow-sm"
+                  >
                     <CardContent className="p-6">
-                      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4">
+                      <div className="mb-4 flex flex-col items-start justify-between gap-3 md:flex-row md:items-center">
                         <div>
-                          <p className="text-sm text-muted-foreground">Order #{order.id}</p>
-                          <p className="text-xs text-muted-foreground">
+                          <p className="text-sm text-[#7A6547]">Order #{order.id}</p>
+                          <p className="text-xs text-[#8B6A45]">
                             {new Date(order.date).toLocaleDateString()}
                           </p>
                         </div>
-                        <Badge className={STATUS_CONFIG[order.status as keyof typeof STATUS_CONFIG]?.color || "bg-gray-100"}>
-                          <StatusIcon className="h-3 w-3 mr-1" />
-                          {STATUS_CONFIG[order.status as keyof typeof STATUS_CONFIG]?.label || order.status}
+
+                        <Badge className={`${config.color} border-0`}>
+                          <StatusIcon className="mr-1 h-3 w-3" />
+                          {config.label}
                         </Badge>
                       </div>
 
                       <div className="space-y-3">
-                        {order.items.map((item: any) => (
-                          <div key={item.id} className="flex gap-3">
-                            <div className="relative w-16 h-16 rounded-lg overflow-hidden flex-shrink-0">
-                              <Image
-                                src={item.imageUrl}
-                                alt={item.name}
-                                fill
-                                className="object-cover"
-                              />
+                        {items.map((item: any, index: number) => {
+                          const itemImage =
+                            item?.imageUrl?.trim() ? item.imageUrl : "/sibolLogo.png";
+
+                          const itemQuantity =
+                            item.quantity ?? order.quantity ?? 0;
+
+                          return (
+                            <div key={`${item.id || "item"}-${index}`} className="flex gap-3">
+                              <div className="relative h-16 w-16 flex-shrink-0 overflow-hidden rounded-lg border border-[#D7C29B] bg-[#FFFDF7]">
+                                <Image
+                                  src={itemImage}
+                                  alt={item.name || "Product image"}
+                                  fill
+                                  className="object-cover"
+                                />
+                              </div>
+
+                              <div className="flex-1">
+                                <p className="font-bold text-[#2F1F10]">{item.name}</p>
+                                <p className="text-sm text-[#7A6547]">
+                                  {itemQuantity}kg × ₱{item.price}/kg
+                                </p>
+                                {item.farmer && (
+                                  <p className="mt-1 inline-flex items-center gap-1 text-xs text-[#2E6C3C]">
+                                    <Store className="h-3 w-3" />
+                                    {item.farmer}
+                                  </p>
+                                )}
+                              </div>
+
+                              <div className="text-right">
+                                <p className="font-black text-[#7A4A14]">
+                                  ₱{(item.price * itemQuantity).toLocaleString()}
+                                </p>
+                              </div>
                             </div>
-                            <div className="flex-1">
-                              <p className="font-medium">{item.name}</p>
-                              <p className="text-sm text-muted-foreground">
-                                {item.quantity}kg x ₱{item.price}/kg
-                              </p>
-                            </div>
-                            <div className="text-right">
-                              <p className="font-bold">₱{item.price * item.quantity}</p>
-                            </div>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
 
-                      <div className="border-t mt-4 pt-4 flex justify-between items-center">
+                      <div className="mt-4 flex items-center justify-between border-t border-[#E4D3B1] pt-4">
                         <div>
-                          <p className="text-sm text-muted-foreground">Total</p>
-                          <p className="text-xl font-bold text-primary">₱{order.total}</p>
+                          <p className="text-sm text-[#7A6547]">Total</p>
+                          <p className="text-xl font-black text-[#2E6C3C]">
+                            ₱{Number(order.total || 0).toLocaleString()}
+                          </p>
                         </div>
-                        <Button variant="outline" size="sm" asChild>
+
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          asChild
+                          className="border-[#D7C29B] bg-white text-[#5E472F] hover:bg-[#F5EEDC]"
+                        >
                           <Link href={`/orders/${order.id}`}>
                             View Details
-                            <ChevronRight className="h-4 w-4 ml-1" />
+                            <ChevronRight className="ml-1 h-4 w-4" />
                           </Link>
                         </Button>
                       </div>
 
-                      {/* Tracking Info */}
-                      <div className="bg-gray-50 rounded-lg p-3 mt-4">
-                        <div className="flex items-center gap-2 text-sm">
-                          <Truck className="h-4 w-4 text-primary" />
-                          <span className="font-medium">Tracking:</span>
-                          {order.status === "delivered" ? (
-                            <span>Delivered on {new Date(order.updatedAt || order.date).toLocaleDateString()}</span>
-                          ) : order.status === "in_transit" ? (
-                            <span>Estimated delivery: 2-3 days</span>
-                          ) : (
-                            <span>Order confirmed, waiting for pickup</span>
-                          )}
+                      <div className="mt-4 rounded-lg bg-[#FFFDF7] p-3 border border-[#E4D3B1]">
+                        <div className="flex items-center gap-2 text-sm text-[#5E472F]">
+                          <Truck className="h-4 w-4 text-[#2E6C3C]" />
+                          <span className="font-bold">Tracking:</span>
+                          <span>{config.trackingText(order)}</span>
                         </div>
                       </div>
                     </CardContent>
@@ -172,13 +275,16 @@ export default function OrdersPage() {
               })}
             </div>
           ) : (
-            <div className="text-center py-12">
-              <Package className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
-              <h3 className="text-xl font-bold">No orders found</h3>
-              <p className="text-muted-foreground mt-1">
-                You haven't placed any orders yet
+            <div className="py-12 text-center">
+              <Package className="mx-auto mb-3 h-12 w-12 text-[#8B6A45]" />
+              <h3 className="text-xl font-black text-[#2F1F10]">No orders found</h3>
+              <p className="mt-1 text-[#7A6547]">
+                You haven’t placed any orders yet.
               </p>
-              <Button asChild className="mt-4">
+              <Button
+                asChild
+                className="mt-4 bg-[#2E6C3C] text-white hover:bg-[#285D35]"
+              >
                 <Link href="/market">Start Shopping</Link>
               </Button>
             </div>

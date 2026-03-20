@@ -26,31 +26,65 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import { useToast } from "@/hooks/use-toast";
+import { useParams, useRouter } from "next/navigation";
 
-export default function ProductDetailPage({
-  params,
-}: {
-  params: { id: string };
-}) {
+const CHECKOUT_PRODUCT_KEY = "sibol_checkout_product";
+
+const riceGalleryCollection = {
+  polished: [
+    "/images/rice/polished-1.jpg",
+    "/images/rice/polished-2.jpg",
+    "/images/rice/polished-3.jpg",
+    "/images/rice/polished-4.jpg",
+    "/images/rice/brown-1.jpg",
+    "/images/rice/brown-2.jpg",
+    "/images/rice/brown-3.jpg",
+    "/images/rice/brown-4.jpg",
+    "/images/rice/farm-1.jpg",
+    "/images/rice/farm-2.jpg",
+    "/images/rice/farm-3.jpg",
+    "/images/rice/seeds-1.jpg",
+    "/images/rice/seeds-2.jpg",
+    "/images/rice/seeds-3.jpg",
+    "/images/rice/seeds-4.jpg",
+  ],
+};
+
+function getGalleryByCategory(category: string) {
+  const images =
+    riceGalleryCollection[category as keyof typeof riceGalleryCollection] ||
+    riceGalleryCollection.polished;
+
+  return images.slice(0, 4);
+}
+
+
+export default function ProductDetailPage() {
+ 
   const [purchaseType, setPurchaseType] = useState<"individual" | "pooled">(
     "individual"
   );
-  const [isEscrowProcessing, setIsEscrowProcessing] = useState(false);
+  
   const [quantity, setQuantity] = useState(10);
   const [selectedImage, setSelectedImage] = useState(0);
-  const { toast } = useToast();
+  const router = useRouter();
+  const routeParams = useParams<{ id: string }>();
+  const productId = routeParams.id;
+  
 
   const handlePurchase = () => {
-    setIsEscrowProcessing(true);
-    setTimeout(() => {
-      setIsEscrowProcessing(false);
-      toast({
-        title: "Escrow Payment Initialized",
-        description:
-          "Funds are now safely locked in the smart contract on Base. Farmer has been notified.",
-      });
-    }, 2000);
+    const checkoutProduct = {
+      ...product,
+      selectedQuantity: quantity,
+      selectedOrderType: purchaseType,
+    };
+
+    localStorage.setItem(CHECKOUT_PRODUCT_KEY, JSON.stringify(checkoutProduct));
+
+    router.push("/checkout");
   };
+
+  const productCategory = "polished";
 
   const product = {
     name: "Dinorado Rice Premium Grade A",
@@ -64,15 +98,11 @@ export default function ProductDetailPage({
     harvestDate: "Feb 12, 2026",
     rating: 4.8,
     reviews: 24,
+    category: productCategory,
     description:
       "Mabango, malambot, at bahagyang malagkit kapag naluto. Direktang inani mula sa mga bukirin ng Nueva Ecija at maingat na minill upang mapanatili ang kalidad at natural na sustansya.",
     farmer: "Nueva Ecija Rice Producers Cooperative",
-    gallery: [
-      "https://picsum.photos/seed/rice-detail/900/700",
-      "https://picsum.photos/seed/rice-bag/900/700",
-      "https://picsum.photos/seed/rice-farm/900/700",
-      "https://picsum.photos/seed/rice-closeup/900/700",
-    ],
+    gallery: getGalleryByCategory(productCategory),
   };
 
   const shippingPerKg = 2.5;
@@ -568,16 +598,11 @@ export default function ProductDetailPage({
                     <Button
                       className="h-14 w-full rounded-2xl bg-[#2E6C3C] text-base font-black text-white shadow-lg hover:bg-[#285D35]"
                       onClick={handlePurchase}
-                      disabled={isEscrowProcessing}
+                  
                     >
-                      {isEscrowProcessing ? (
-                        "Kinukumpirma sa Base..."
-                      ) : (
-                        <>
-                          Ituloy ang Escrow
+                          Secure Payment (Escrow)
                           <Lock className="ml-2 h-5 w-5" />
-                        </>
-                      )}
+                    
                     </Button>
 
                     <div className="grid grid-cols-3 gap-2 text-center">
