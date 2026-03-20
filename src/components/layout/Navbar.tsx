@@ -2,16 +2,35 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { Menu, X, Wallet, ShoppingBag, Leaf, LayoutDashboard } from "lucide-react";
+import {
+  Menu,
+  X,
+  Wallet,
+  ShoppingBag,
+  Leaf,
+  LayoutDashboard,
+  LogOut,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { ethers } from "ethers";
+import { useAuth } from "@/providers/AuthProvider";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 export function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
   const [address, setAddress] = useState("");
   const [chainName, setChainName] = useState("");
+  const { user, logout } = useAuth();
 
   const connectWallet = async () => {
     if (typeof window === "undefined" || !(window as any).ethereum) {
@@ -48,6 +67,16 @@ export function Navbar() {
     { name: "About Sibol", href: "/#about", icon: Leaf },
   ];
 
+  const getAvatarInitials = () => {
+    if (!user) return "?";
+    return user.name
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2);
+  };
+
   return (
     <nav className="sticky top-0 z-50 w-full border-b bg-background/80 backdrop-blur-md">
       <div className="container mx-auto px-4">
@@ -57,7 +86,9 @@ export function Navbar() {
               <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
                 <Leaf className="h-5 w-5 text-primary-foreground" />
               </div>
-              <span className="text-xl font-bold tracking-tight text-primary font-headline">SibolMarket</span>
+              <span className="text-xl font-bold tracking-tight text-primary font-headline">
+                Sibol
+              </span>
             </Link>
           </div>
 
@@ -72,15 +103,55 @@ export function Navbar() {
                 {link.name}
               </Link>
             ))}
-            <Button
-              variant={isConnected ? "outline" : "default"}
-              size="sm"
-              onClick={connectWallet}
-              className="gap-2"
-            >
-              <Wallet className="h-4 w-4" />
-              {isConnected ? address : "Connect Wallet"}
-            </Button>
+
+            <div className="flex items-center gap-3">
+              {/* 🔥 Wallet ALWAYS visible */}
+              <Button
+                variant={isConnected ? "outline" : "default"}
+                size="sm"
+                onClick={connectWallet}
+                className="gap-2"
+              >
+                <Wallet className="h-4 w-4" />
+                {isConnected ? address : "Connect Wallet"}
+              </Button>
+            </div>
+              {!user ? (
+                <>
+                  <Link href="/auth">
+                    <Button size="sm">
+                      Sign Up
+                    </Button>
+                  </Link>
+                </>
+              ) : (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" className="relative h-10 w-10 rounded-full">
+                      <Avatar className="h-10 w-10">
+                        <AvatarFallback className="bg-primary/10 text-primary">
+                          {getAvatarInitials()}
+                        </AvatarFallback>
+                      </Avatar>
+                    </Button>
+                  </DropdownMenuTrigger>
+
+                  <DropdownMenuContent className="w-56" align="end">
+                    <DropdownMenuLabel>
+                      <div className="flex flex-col">
+                        <p className="text-sm font-medium">{user.name}</p>
+                        <p className="text-xs text-muted-foreground">{user.email}</p>
+                      </div>
+                    </DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={logout} className="text-red-600">
+                      Logout
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
+
+              
           </div>
 
           {/* Mobile menu button */}
@@ -106,10 +177,44 @@ export function Navbar() {
               {link.name}
             </Link>
           ))}
-          <Button className="w-full gap-2 justify-center" onClick={connectWallet}>
-            <Wallet className="h-4 w-4" />
-            {isConnected ? address : "Connect Wallet"}
-          </Button>
+
+          {!user ? (
+            <div className="space-y-2 pt-2 border-t">
+              <Link href="/auth" onClick={() => setIsOpen(false)}>
+                <Button variant="ghost" className="w-full justify-center">
+                  Login
+                </Button>
+              </Link>
+              <Link href="/auth" onClick={() => setIsOpen(false)}>
+                <Button className="w-full justify-center">
+                  Sign Up
+                </Button>
+              </Link>
+            </div>
+          ) : (
+            <div className="space-y-2 pt-2 border-t">
+              <div className="flex items-center justify-between p-2 bg-secondary rounded-md">
+                <span className="text-sm">{user.name}</span>
+              </div>
+
+              <Button
+                className="w-full gap-2 justify-center"
+                onClick={connectWallet}
+              >
+                <Wallet className="h-4 w-4" />
+                {isConnected ? address : "Connect Wallet"}
+              </Button>
+
+              <Button
+                variant="outline"
+                className="w-full gap-2 justify-center"
+                onClick={logout}
+              >
+                <LogOut className="h-4 w-4" />
+                Logout
+              </Button>
+            </div>
+          )}
         </div>
       </div>
     </nav>
