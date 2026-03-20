@@ -1,3 +1,28 @@
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "hero-farm",
+      "description": "A beautiful rice terrace in the Philippines",
+      "imageUrl": "https://picsum.photos/seed/sibol-hero/1200/600",
+      "imageHint": "rice farm terrace"
+    },
+    {
+      "id": "rice-bag-1",
+      "description": "High quality Dinorado rice in a sack",
+      "imageUrl": "https://picsum.photos/seed/rice1/400/300",
+      "imageHint": "rice sack"
+    },
+    {
+      "id": "rice-bag-2",
+      "description": "Premium Jasmine rice for sale",
+      "imageUrl": "https://picsum.photos/seed/rice2/400/300",
+      "imageHint": "grains rice"
+    },
+    {
+      "id": "farmer-working",
+      "description": "A Filipino farmer harvesting rice",
+      "imageUrl": "https://picsum.photos/seed/farmer/400/300",
+      "imageHint": "farmer harvesting"
+    }
+  ]
 }

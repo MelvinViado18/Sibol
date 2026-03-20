@@ -41,14 +41,18 @@ export default function LandingPage() {
               </div>
               <div className="relative">
                 <div className="absolute -inset-4 bg-primary/10 blur-3xl rounded-full" />
-                <div className="relative aspect-video rounded-2xl overflow-hidden shadow-2xl border-4 border-white/50">
-                  <Image
-                    src={heroImage?.imageUrl || ""}
-                    alt="Rice Farm Hero"
-                    fill
-                    className="object-cover"
-                    data-ai-hint="rice farm"
-                  />
+                <div className="relative aspect-video rounded-2xl overflow-hidden shadow-2xl border-4 border-white/50 bg-secondary/20 flex items-center justify-center">
+                  {heroImage?.imageUrl ? (
+                    <Image
+                      src={heroImage.imageUrl}
+                      alt="Rice Farm Hero"
+                      fill
+                      className="object-cover"
+                      data-ai-hint="rice farm"
+                    />
+                  ) : (
+                    <Leaf className="h-12 w-12 text-primary/20" />
+                  )}
                 </div>
               </div>
             </div>
