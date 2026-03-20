@@ -17,6 +17,32 @@ import {
   Store,
 } from "lucide-react";
 
+const riceImageCollection = {
+  polished: [
+    "/images/rice/polished-1.jpg",
+    "/images/rice/polished-2.jpg",
+    "/images/rice/polished-3.jpg",
+  ],
+  unpolished: [
+    "/images/rice/brown-1.jpg",
+    "/images/rice/brown-2.jpg",
+    "/images/rice/brown-3.jpg",
+  ],
+  seeds: [
+    "/images/rice/seeds-1.jpg",
+    "/images/rice/seeds-2.jpg",
+    "/images/rice/seeds-3.jpg",
+  ],
+};
+
+function getImageByCategory(category: string, index: number) {
+  const images =
+    riceImageCollection[category as keyof typeof riceImageCollection] ||
+    riceImageCollection.polished;
+
+  return images[index % images.length];
+}
+
 const SAMPLE_PRODUCTS = [
   {
     id: "1",
@@ -26,7 +52,7 @@ const SAMPLE_PRODUCTS = [
     location: "Bayan, Nueva Ecija",
     harvestDate: "Feb 2026",
     rating: 4.8,
-    imageUrl: "https://picsum.photos/seed/rice1/400/300",
+    imageUrl: getImageByCategory("polished", 0),
     isPooled: true,
     category: "polished",
     verified: true,
@@ -39,7 +65,7 @@ const SAMPLE_PRODUCTS = [
     location: "Isabela",
     harvestDate: "Jan 2026",
     rating: 4.5,
-    imageUrl: "https://picsum.photos/seed/rice2/400/300",
+    imageUrl: getImageByCategory("polished", 1),
     isPooled: false,
     category: "polished",
     verified: true,
@@ -52,7 +78,7 @@ const SAMPLE_PRODUCTS = [
     location: "Tarlac",
     harvestDate: "Mar 2026",
     rating: 4.9,
-    imageUrl: "https://picsum.photos/seed/rice3/400/300",
+    imageUrl: getImageByCategory("seeds", 0),
     isPooled: true,
     category: "seeds",
     verified: false,
@@ -65,7 +91,7 @@ const SAMPLE_PRODUCTS = [
     location: "Benguet",
     harvestDate: "Dec 2025",
     rating: 4.7,
-    imageUrl: "https://picsum.photos/seed/rice4/400/300",
+    imageUrl: getImageByCategory("unpolished", 0),
     isPooled: false,
     category: "unpolished",
     verified: true,
@@ -183,7 +209,7 @@ export default function MarketplacePage() {
 
         <div className="container mx-auto px-4 py-10 lg:py-14">
           <div className="max-w-4xl space-y-5">
-            <WoodSign>Pamilihan ng Sibol</WoodSign>
+            <WoodSign>Sibol Marketplace</WoodSign>
 
             <div className="space-y-3">
               <h1 className="text-3xl font-black tracking-tight sm:text-4xl lg:text-5xl text-[#2F1F10]">
