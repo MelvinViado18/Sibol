@@ -2,12 +2,13 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Mail, Lock, User, Leaf, Loader2, Shield, ArrowRight } from "lucide-react";
+import { Mail, Lock, User, Leaf, Loader2, Shield, ArrowRight, ArrowLeft, CheckCircle } from "lucide-react";
 import { useAuth } from "@/providers/AuthProvider";
 import { useToast } from "@/hooks/use-toast";
 
@@ -101,7 +102,15 @@ export default function AuthPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-primary/5">
-      <div className="container mx-auto px-4 py-12">
+      {/* Simple Header with Back to Home */}
+      <div className="container mx-auto px-4 py-4">
+        <Link href="/" className="inline-flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors">
+          <ArrowLeft className="h-4 w-4" />
+          <span className="text-sm">Back to Home</span>
+        </Link>
+      </div>
+
+      <div className="container mx-auto px-4 py-8">
         <div className="flex flex-col lg:flex-row items-center justify-between gap-12 max-w-6xl mx-auto">
           {/* Left Side - Branding */}
           <div className="flex-1 text-center lg:text-left">
@@ -132,7 +141,7 @@ export default function AuthPage() {
                 <span className="text-sm">Direct farm-to-consumer pricing</span>
               </div>
               <div className="flex items-center gap-3">
-                <Loader2 className="h-5 w-5 text-primary" />
+                <CheckCircle className="h-5 w-5 text-primary" />
                 <span className="text-sm">Real-time logistics tracking</span>
               </div>
             </div>
@@ -141,6 +150,28 @@ export default function AuthPage() {
               <p className="text-sm text-muted-foreground">
                 ✨ <span className="font-semibold">Special Offer:</span> New users get 10% off their first purchase!
               </p>
+            </div>
+
+            {/* Trust Badges */}
+            <div className="mt-8 flex flex-wrap gap-4 justify-center lg:justify-start">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center">
+                  <span className="text-xs font-bold text-green-600">✓</span>
+                </div>
+                <span className="text-xs">1000+ Users</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center">
+                  <span className="text-xs font-bold text-green-600">✓</span>
+                </div>
+                <span className="text-xs">500+ Farmers</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center">
+                  <span className="text-xs font-bold text-green-600">✓</span>
+                </div>
+                <span className="text-xs">50+ Logistics Partners</span>
+              </div>
             </div>
           </div>
 
@@ -325,6 +356,16 @@ export default function AuthPage() {
                 </Tabs>
               </CardContent>
             </Card>
+
+            {/* Demo Credentials Info */}
+            <div className="mt-6 text-center">
+              <p className="text-xs text-muted-foreground">
+                Demo credentials:
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Email: user@example.com | Password: user123
+              </p>
+            </div>
           </div>
         </div>
       </div>
