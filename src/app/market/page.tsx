@@ -542,7 +542,17 @@ export default function MarketplacePage() {
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3">
               {filteredProducts.map((product) => (
                 <div key={product.id} className="space-y-2">
-                  <ProductCard {...product} />
+                  <ProductCard
+                    id={product.id}
+                    name={product.name}
+                    price={product.price}
+                    quantity={product.quantity}
+                    location={product.location}
+                    harvestDate={product.harvestDate}
+                    rating={product.rating ?? 4.5}
+                    imageUrl={product.imageUrl}
+                    isPooled={product.isPooled}
+                  />
                   <div className="flex flex-wrap gap-2 px-1">
                     {product.verified && (
                       <span className="inline-flex items-center rounded-full border border-[#B8D6B3] bg-[#E9F6E5] px-2.5 py-1 text-xs font-medium text-[#2E6C3C]">
