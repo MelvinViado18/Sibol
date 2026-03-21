@@ -39,10 +39,13 @@ import {
   ShoppingCart,
   Archive,
   ShieldCheck,
+  Sprout,
+  CalendarDays,
 } from "lucide-react";
 import Image from "next/image";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/providers/AuthProvider";
+import { updateWalletBalance } from "@/lib/wallet-utils";
 
 declare global {
   interface Window {
@@ -53,6 +56,7 @@ declare global {
 const PRODUCTS_STORAGE_KEY = "sibol_products";
 const ORDERS_STORAGE_KEY = "sibol_orders";
 const FARMER_WALLET_KEY = "sibol_farmer_wallet";
+const HARVESTS_STORAGE_KEY = "sibol_harvests";
 
 type Product = {
   id: string;
@@ -104,7 +108,54 @@ type Order = {
   createdAt?: string;
 };
 
-type ActiveSection = "create" | "harvests" | "orders" | "analytics";
+type HarvestStatus = "funding" | "growing" | "harvested" | "sold";
+
+type HarvestInvestor = {
+  userId: string;
+  userName: string;
+  amount: number;
+};
+
+type HarvestCampaign = {
+  id: string;
+  farmerId: string;
+  farmerName: string;
+  farmerWallet?: string;
+  title: string;
+  cropType: string;
+  location: string;
+  description: string;
+  fundingGoal: number;
+  fundedAmount: number;
+  estimatedYieldKg: number;
+  targetSellPricePerKg: number;
+  estimatedProductionCost: number;
+  expectedHarvestDate: string;
+  profitShareFarmer: number;
+  profitShareInvestors: number;
+  minimumInvestment: number;
+  status: HarvestStatus;
+  investors: HarvestInvestor[];
+  coverImage: string;
+  createdAt: string;
+  verified?: boolean;
+
+  actualYieldKg?: number;
+  actualSellPricePerKg?: number;
+  actualProductionCost?: number;
+  totalRevenue?: number;
+  netProfit?: number;
+  investorProfitPool?: number;
+  farmerProfit?: number;
+  settledAt?: string;
+};
+
+type ActiveSection =
+  | "create"
+  | "harvests"
+  | "funding"
+  | "orders"
+  | "analytics";
 
 function cn(...classes: Array<string | false | null | undefined>) {
   return classes.filter(Boolean).join(" ");
@@ -141,6 +192,7 @@ export default function FarmerDashboard() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [activeSection, setActiveSection] = useState<ActiveSection>("create");
+  const [createMode, setCreateMode] = useState<"product" | "funding">("product");
 
   const [formData, setFormData] = useState({
     name: "",
@@ -150,6 +202,19 @@ export default function FarmerDashboard() {
     description: "",
     harvestDate: new Date().toISOString().split("T")[0],
     category: "polished",
+  });
+
+  const [fundingForm, setFundingForm] = useState({
+    title: "",
+    cropType: "Rice",
+    location: "Nueva Ecija",
+    description: "",
+    fundingGoal: "",
+    estimatedYieldKg: "",
+    targetSellPricePerKg: "",
+    estimatedProductionCost: "",
+    expectedHarvestDate: new Date().toISOString().split("T")[0],
+    minimumInvestment: "500",
   });
 
   const [images, setImages] = useState<File[]>([]);
@@ -162,6 +227,7 @@ export default function FarmerDashboard() {
 
   const [products, setProducts] = useState<Product[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
+  const [harvestCampaigns, setHarvestCampaigns] = useState<HarvestCampaign[]>([]);
 
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [editForm, setEditForm] = useState({
@@ -173,6 +239,89 @@ export default function FarmerDashboard() {
     harvestDate: "",
     category: "polished",
   });
+
+  const [settlingCampaign, setSettlingCampaign] = useState<HarvestCampaign | null>(null);
+
+  const [settlementForm, setSettlementForm] = useState({
+    actualYieldKg: "",
+    actualSellPricePerKg: "",
+    actualProductionCost: "",
+  });
+
+  const openSettlementModal = (campaign: HarvestCampaign) => {
+    setSettlingCampaign(campaign);
+    setSettlementForm({
+      actualYieldKg: String(campaign.actualYieldKg ?? campaign.estimatedYieldKg ?? ""),
+      actualSellPricePerKg: String(
+        campaign.actualSellPricePerKg ?? campaign.targetSellPricePerKg ?? ""
+      ),
+      actualProductionCost: String(
+        campaign.actualProductionCost ?? campaign.estimatedProductionCost ?? ""
+      ),
+    });
+  };
+
+  const handleSettleCampaign = () => {
+    if (!settlingCampaign) return;
+
+    const actualYieldKg = Number(settlementForm.actualYieldKg);
+    const actualSellPricePerKg = Number(settlementForm.actualSellPricePerKg);
+    const actualProductionCost = Number(settlementForm.actualProductionCost);
+
+    if (
+      actualYieldKg <= 0 ||
+      actualSellPricePerKg <= 0 ||
+      actualProductionCost <= 0
+    ) {
+      toast({
+        title: "Invalid settlement values",
+        description: "Please enter valid actual yield, sell price, and production cost.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const totalRevenue = actualYieldKg * actualSellPricePerKg;
+    const netProfit = Math.max(totalRevenue - actualProductionCost, 0);
+    const investorProfitPool =
+      netProfit * (settlingCampaign.profitShareInvestors / 100);
+    const farmerProfit =
+      netProfit * (settlingCampaign.profitShareFarmer / 100);
+
+    const campaign = settlingCampaign;
+
+    // distribute to investors
+    campaign.investors.forEach((investor) => {
+      const shareRatio = investor.amount / campaign.fundingGoal;
+
+      const profitShare = investorProfitPool * shareRatio;
+      const totalPayout = investor.amount + profitShare;
+
+      updateWalletBalance(investor.userId, totalPayout);
+    });
+
+    // give farmer profit
+    updateWalletBalance(campaign.farmerId, farmerProfit);
+
+    updateHarvestCampaign(settlingCampaign.id, {
+      actualYieldKg,
+      actualSellPricePerKg,
+      actualProductionCost,
+      totalRevenue,
+      netProfit,
+      investorProfitPool,
+      farmerProfit,
+      settledAt: new Date().toISOString(),
+      status: "sold",
+    });
+
+    setSettlingCampaign(null);
+
+    toast({
+      title: "Campaign settled",
+      description: "Final sale and profit-sharing summary have been recorded.",
+    });
+  };
 
   const farmerName = user?.name || "Local Farmer";
 
@@ -193,9 +342,16 @@ export default function FarmerDashboard() {
     return stored ? JSON.parse(stored) : [];
   };
 
+  const getHarvestCampaigns = (): HarvestCampaign[] => {
+    if (typeof window === "undefined") return [];
+    const stored = localStorage.getItem(HARVESTS_STORAGE_KEY);
+    return stored ? JSON.parse(stored) : [];
+  };
+
   const refreshDashboardData = () => {
     setProducts(getProducts());
     setOrders(getOrders());
+    setHarvestCampaigns(getHarvestCampaigns());
   };
 
   const saveProduct = (product: Product) => {
@@ -277,6 +433,58 @@ export default function FarmerDashboard() {
     );
   };
 
+  const saveHarvestCampaign = (campaign: HarvestCampaign) => {
+    const currentCampaigns = getHarvestCampaigns();
+    const updatedCampaigns = [campaign, ...currentCampaigns];
+
+    localStorage.setItem(HARVESTS_STORAGE_KEY, JSON.stringify(updatedCampaigns));
+    setHarvestCampaigns(updatedCampaigns);
+
+    window.dispatchEvent(
+      new StorageEvent("storage", {
+        key: HARVESTS_STORAGE_KEY,
+        newValue: JSON.stringify(updatedCampaigns),
+      })
+    );
+  };
+
+  const updateHarvestCampaign = (
+    campaignId: string,
+    updates: Partial<HarvestCampaign>
+  ) => {
+    const currentCampaigns = getHarvestCampaigns();
+    const updatedCampaigns = currentCampaigns.map((campaign) =>
+      campaign.id === campaignId ? { ...campaign, ...updates } : campaign
+    );
+
+    localStorage.setItem(HARVESTS_STORAGE_KEY, JSON.stringify(updatedCampaigns));
+    setHarvestCampaigns(updatedCampaigns);
+
+    window.dispatchEvent(
+      new StorageEvent("storage", {
+        key: HARVESTS_STORAGE_KEY,
+        newValue: JSON.stringify(updatedCampaigns),
+      })
+    );
+  };
+
+  const deleteHarvestCampaign = (campaignId: string) => {
+    const currentCampaigns = getHarvestCampaigns();
+    const updatedCampaigns = currentCampaigns.filter(
+      (campaign) => campaign.id !== campaignId
+    );
+
+    localStorage.setItem(HARVESTS_STORAGE_KEY, JSON.stringify(updatedCampaigns));
+    setHarvestCampaigns(updatedCampaigns);
+
+    window.dispatchEvent(
+      new StorageEvent("storage", {
+        key: HARVESTS_STORAGE_KEY,
+        newValue: JSON.stringify(updatedCampaigns),
+      })
+    );
+  };
+
   useEffect(() => {
     const savedWallet = localStorage.getItem(FARMER_WALLET_KEY);
     if (savedWallet) setWalletAddress(savedWallet);
@@ -287,7 +495,8 @@ export default function FarmerDashboard() {
       if (
         e.key === PRODUCTS_STORAGE_KEY ||
         e.key === ORDERS_STORAGE_KEY ||
-        e.key === FARMER_WALLET_KEY
+        e.key === FARMER_WALLET_KEY ||
+        e.key === HARVESTS_STORAGE_KEY
       ) {
         if (e.key === FARMER_WALLET_KEY) {
           const newWallet = localStorage.getItem(FARMER_WALLET_KEY) || "";
@@ -399,7 +608,7 @@ export default function FarmerDashboard() {
     setImagePreviews((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const resetForm = () => {
+  const resetProductForm = () => {
     setFormData({
       name: "",
       price: "",
@@ -413,6 +622,23 @@ export default function FarmerDashboard() {
     setImagePreviews([]);
     setUploading(false);
     setSuccess(false);
+  };
+
+  const resetFundingForm = () => {
+    setFundingForm({
+      title: "",
+      cropType: "Rice",
+      location: "Nueva Ecija",
+      description: "",
+      fundingGoal: "",
+      estimatedYieldKg: "",
+      targetSellPricePerKg: "",
+      estimatedProductionCost: "",
+      expectedHarvestDate: new Date().toISOString().split("T")[0],
+      minimumInvestment: "500",
+    });
+    setImages([]);
+    setImagePreviews([]);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -502,9 +728,96 @@ export default function FarmerDashboard() {
     });
 
     setTimeout(() => {
-      resetForm();
+      resetProductForm();
       setActiveSection("harvests");
     }, 1200);
+  };
+
+  const handleFundingSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!walletAddress) {
+      toast({
+        title: "Connect wallet first",
+        description: "Please connect your wallet before creating a funding campaign.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (
+      !fundingForm.title ||
+      !fundingForm.location ||
+      !fundingForm.fundingGoal ||
+      !fundingForm.estimatedYieldKg ||
+      !fundingForm.targetSellPricePerKg ||
+      !fundingForm.estimatedProductionCost
+    ) {
+      toast({
+        title: "Missing fields",
+        description: "Please complete all required funding campaign fields.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const fundingGoal = Number(fundingForm.fundingGoal);
+    const estimatedYieldKg = Number(fundingForm.estimatedYieldKg);
+    const targetSellPricePerKg = Number(fundingForm.targetSellPricePerKg);
+    const estimatedProductionCost = Number(fundingForm.estimatedProductionCost);
+    const minimumInvestment = Number(fundingForm.minimumInvestment || 500);
+
+    if (
+      fundingGoal <= 0 ||
+      estimatedYieldKg <= 0 ||
+      targetSellPricePerKg <= 0 ||
+      estimatedProductionCost <= 0 ||
+      minimumInvestment <= 0
+    ) {
+      toast({
+        title: "Invalid values",
+        description: "All funding values must be greater than zero.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const newCampaign: HarvestCampaign = {
+      id: crypto.randomUUID(),
+      farmerId: user?.id || user?.email || farmerName,
+      farmerName,
+      farmerWallet: walletAddress,
+      title: fundingForm.title.trim(),
+      cropType: fundingForm.cropType,
+      location: fundingForm.location.trim(),
+      description: fundingForm.description.trim(),
+      fundingGoal,
+      fundedAmount: 0,
+      estimatedYieldKg,
+      targetSellPricePerKg,
+      estimatedProductionCost,
+      expectedHarvestDate: fundingForm.expectedHarvestDate,
+      profitShareFarmer: 60,
+      profitShareInvestors: 40,
+      minimumInvestment,
+      status: "funding",
+      investors: [],
+      coverImage:
+        imagePreviews[0] || "https://picsum.photos/seed/rice-funding/600/400",
+      createdAt: new Date().toISOString(),
+      verified: true,
+    };
+
+    saveHarvestCampaign(newCampaign);
+
+    resetFundingForm();
+
+    toast({
+      title: "Funding campaign created",
+      description: `${newCampaign.title} is now open for investor funding.`,
+    });
+
+    setActiveSection("funding");
   };
 
   const farmerProducts = useMemo(() => {
@@ -537,8 +850,31 @@ export default function FarmerDashboard() {
       });
   }, [orders, walletAddress, farmerName]);
 
+  const farmerHarvestCampaigns = useMemo(() => {
+    return harvestCampaigns
+      .filter((campaign) => {
+        const sameWallet =
+          walletAddress &&
+          campaign.farmerWallet &&
+          campaign.farmerWallet === walletAddress;
+
+        const sameName = campaign.farmerName === farmerName;
+
+        return sameWallet || sameName;
+      })
+      .sort((a, b) => {
+        const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        return bTime - aTime;
+      });
+  }, [harvestCampaigns, walletAddress, farmerName]);
+
   const activeListingsCount = farmerProducts.filter(
     (product) => product.status === "active"
+  ).length;
+
+  const activeFundingCampaignsCount = farmerHarvestCampaigns.filter(
+    (campaign) => campaign.status === "funding" || campaign.status === "growing"
   ).length;
 
   const pendingOrdersCount = farmerOrders.filter((order) =>
@@ -658,6 +994,16 @@ export default function FarmerDashboard() {
     .sort((a, b) => b.soldKg - a.soldKg)
     .slice(0, 5);
 
+  const totalFundingGoal = farmerHarvestCampaigns.reduce(
+    (sum, campaign) => sum + campaign.fundingGoal,
+    0
+  );
+
+  const totalFundedAmount = farmerHarvestCampaigns.reduce(
+    (sum, campaign) => sum + campaign.fundedAmount,
+    0
+  );
+
   const getOrderStatusClass = (status?: string) => {
     switch (status) {
       case "paid":
@@ -696,6 +1042,21 @@ export default function FarmerDashboard() {
       case "paused":
         return "bg-amber-100 text-amber-700";
       case "sold_out":
+        return "bg-slate-200 text-slate-700";
+      default:
+        return "bg-slate-100 text-slate-700";
+    }
+  };
+
+  const getCampaignStatusClass = (status?: HarvestStatus) => {
+    switch (status) {
+      case "funding":
+        return "bg-blue-100 text-blue-700";
+      case "growing":
+        return "bg-green-100 text-green-700";
+      case "harvested":
+        return "bg-amber-100 text-amber-700";
+      case "sold":
         return "bg-slate-200 text-slate-700";
       default:
         return "bg-slate-100 text-slate-700";
@@ -829,21 +1190,25 @@ export default function FarmerDashboard() {
 
   const sectionTitle =
     activeSection === "create"
-      ? "Publish Harvest"
+      ? "Create Listing"
       : activeSection === "harvests"
       ? "Harvest Listings"
+      : activeSection === "funding"
+      ? "Funding Campaigns"
       : activeSection === "orders"
       ? "Buyer Orders"
       : "Market Insights";
 
   const sectionDescription =
     activeSection === "create"
-      ? "Add a fresh listing to your stall."
+      ? "Choose whether to publish a product or launch a funding campaign."
       : activeSection === "harvests"
       ? "Manage your live listings and stock."
+      : activeSection === "funding"
+      ? "Raise harvest capital through profit-sharing campaigns."
       : activeSection === "orders"
       ? "Track orders and update delivery status."
-      : "Monitor revenue, payouts, and inventory.";
+      : "Monitor revenue, payouts, inventory, and funding performance.";
 
   const navItems: {
     key: ActiveSection;
@@ -851,8 +1216,14 @@ export default function FarmerDashboard() {
     icon: React.ElementType;
     count?: number;
   }[] = [
-    { key: "create", label: "Publish Harvest", icon: Plus },
+    { key: "create", label: "Create Listing", icon: Plus },
     { key: "harvests", label: "Harvest Listings", icon: Package, count: farmerProducts.length },
+    {
+      key: "funding",
+      label: "Funding Campaigns",
+      icon: CircleDollarSign,
+      count: farmerHarvestCampaigns.length,
+    },
     { key: "orders", label: "Buyer Orders", icon: History, count: farmerOrders.length },
     { key: "analytics", label: "Market Insights", icon: TrendingUp },
   ];
@@ -870,7 +1241,7 @@ export default function FarmerDashboard() {
                 <WoodSign className="mb-3">Farmer Portal</WoodSign>
                 <h1 className="text-3xl font-bold">Welcome back, {farmerName}</h1>
                 <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
-                  Manage your harvest listings, fulfill buyer orders, and track your stall
+                  Manage your harvest listings, funding campaigns, buyer orders, and stall
                   performance.
                 </p>
               </div>
@@ -881,12 +1252,12 @@ export default function FarmerDashboard() {
                   <p className="mt-1 text-xl font-bold">{activeListingsCount}</p>
                 </div>
                 <div className="rounded-2xl bg-[#F7F8F3] px-4 py-3 text-center">
-                  <p className="text-[11px] text-muted-foreground">Orders</p>
-                  <p className="mt-1 text-xl font-bold">{pendingOrdersCount}</p>
+                  <p className="text-[11px] text-muted-foreground">Campaigns</p>
+                  <p className="mt-1 text-xl font-bold">{activeFundingCampaignsCount}</p>
                 </div>
                 <div className="rounded-2xl bg-[#F7F8F3] px-4 py-3 text-center">
-                  <p className="text-[11px] text-muted-foreground">Sold</p>
-                  <p className="mt-1 text-xl font-bold">{totalKgSold.toLocaleString()}</p>
+                  <p className="text-[11px] text-muted-foreground">Orders</p>
+                  <p className="mt-1 text-xl font-bold">{pendingOrdersCount}</p>
                 </div>
                 <div className="rounded-2xl bg-[#F7F8F3] px-4 py-3 text-center">
                   <p className="text-[11px] text-muted-foreground">Revenue</p>
@@ -911,15 +1282,19 @@ export default function FarmerDashboard() {
                     <p className="text-sm text-muted-foreground">Direct Farm Seller</p>
                     <div className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
                       <MapPin className="h-3.5 w-3.5" />
-                      <span>{formData.location || "Nueva Ecija"}</span>
+                      <span>{formData.location || fundingForm.location || "Nueva Ecija"}</span>
                     </div>
                   </div>
                 </div>
 
-                <div className="mt-4 grid grid-cols-3 gap-2">
+                <div className="mt-4 grid grid-cols-4 gap-2">
                   <div className="rounded-2xl bg-[#FFF8E8] p-3 text-center">
                     <p className="text-[10px] text-muted-foreground">Listings</p>
                     <p className="mt-1 font-bold">{farmerProducts.length}</p>
+                  </div>
+                  <div className="rounded-2xl bg-[#FFF8E8] p-3 text-center">
+                    <p className="text-[10px] text-muted-foreground">Campaigns</p>
+                    <p className="mt-1 font-bold">{farmerHarvestCampaigns.length}</p>
                   </div>
                   <div className="rounded-2xl bg-[#FFF8E8] p-3 text-center">
                     <p className="text-[10px] text-muted-foreground">Orders</p>
@@ -1043,7 +1418,26 @@ export default function FarmerDashboard() {
 
             {activeSection === "create" && (
               <>
-                {success && (
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    type="button"
+                    variant={createMode === "product" ? "default" : "outline"}
+                    onClick={() => setCreateMode("product")}
+                  >
+                    <Package className="h-4 w-4 mr-2" />
+                    Publish Product
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={createMode === "funding" ? "default" : "outline"}
+                    onClick={() => setCreateMode("funding")}
+                  >
+                    <CircleDollarSign className="h-4 w-4 mr-2" />
+                    Create Funding Campaign
+                  </Button>
+                </div>
+
+                {createMode === "product" && success && (
                   <div className="rounded-2xl border border-green-200 bg-green-50 px-4 py-3 flex items-center gap-2 text-green-700">
                     <CheckCircle className="h-5 w-5" />
                     <span className="text-sm font-medium">
@@ -1052,221 +1446,457 @@ export default function FarmerDashboard() {
                   </div>
                 )}
 
-                <form onSubmit={handleSubmit}>
-                  <Card className="rounded-[28px] border-[3px] border-[#C89D57] bg-white shadow-md overflow-hidden">
-                    <CardContent className="p-0">
-                      <div className="grid lg:grid-cols-2">
-                        <div className="p-6 border-b lg:border-b-0 lg:border-r border-[#E8D7B5]">
-                          <div className="mb-4">
-                            <h3 className="font-bold">Product Photos</h3>
-                            <p className="text-sm text-muted-foreground mt-1">
-                              Clear photos help buyers trust your listing.
-                            </p>
+                {createMode === "product" && (
+                  <form onSubmit={handleSubmit}>
+                    <Card className="rounded-[28px] border-[3px] border-[#C89D57] bg-white shadow-md overflow-hidden">
+                      <CardContent className="p-0">
+                        <div className="grid lg:grid-cols-2">
+                          <div className="p-6 border-b lg:border-b-0 lg:border-r border-[#E8D7B5]">
+                            <div className="mb-4">
+                              <h3 className="font-bold">Product Photos</h3>
+                              <p className="text-sm text-muted-foreground mt-1">
+                                Clear photos help buyers trust your listing.
+                              </p>
+                            </div>
+
+                            <div className="rounded-[24px] border-2 border-dashed border-[#C89D57] bg-[#FFF8E8] p-5 text-center">
+                              <input
+                                type="file"
+                                ref={fileInputRef}
+                                onChange={handleImageUpload}
+                                accept="image/*"
+                                multiple
+                                className="hidden"
+                              />
+
+                              {imagePreviews.length === 0 ? (
+                                <div
+                                  onClick={() => fileInputRef.current?.click()}
+                                  className="cursor-pointer"
+                                >
+                                  <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-white shadow-sm">
+                                    <Upload className="h-7 w-7 text-primary" />
+                                  </div>
+                                  <p className="font-medium">Upload photos of your rice</p>
+                                  <p className="mt-1 text-sm text-muted-foreground">
+                                    JPG, PNG or GIF, up to 5 images
+                                  </p>
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    className="mt-4"
+                                    onClick={() => fileInputRef.current?.click()}
+                                  >
+                                    <ImageIcon className="h-4 w-4 mr-2" />
+                                    Select Images
+                                  </Button>
+                                </div>
+                              ) : (
+                                <div>
+                                  <div className="grid grid-cols-3 gap-3 mb-4">
+                                    {imagePreviews.map((preview, index) => (
+                                      <div key={index} className="relative group">
+                                        <div className="aspect-square rounded-2xl overflow-hidden border border-[#E8D7B5] bg-white">
+                                          <Image
+                                            src={preview}
+                                            alt={`Product preview ${index + 1}`}
+                                            width={150}
+                                            height={150}
+                                            className="w-full h-full object-cover"
+                                          />
+                                        </div>
+                                        <button
+                                          type="button"
+                                          onClick={() => removeImage(index)}
+                                          className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full p-1 shadow-md opacity-0 group-hover:opacity-100 transition-opacity"
+                                        >
+                                          <X className="h-4 w-4" />
+                                        </button>
+                                      </div>
+                                    ))}
+
+                                    {imagePreviews.length < 5 && (
+                                      <div
+                                        onClick={() => fileInputRef.current?.click()}
+                                        className="aspect-square rounded-2xl border-2 border-dashed border-[#C89D57] bg-white flex items-center justify-center cursor-pointer hover:border-primary transition-colors"
+                                      >
+                                        <Plus className="h-8 w-8 text-primary" />
+                                      </div>
+                                    )}
+                                  </div>
+
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={() => fileInputRef.current?.click()}
+                                  >
+                                    <Upload className="h-4 w-4 mr-2" />
+                                    Add More Photos
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
                           </div>
 
-                          <div className="rounded-[24px] border-2 border-dashed border-[#C89D57] bg-[#FFF8E8] p-5 text-center">
-                            <input
-                              type="file"
-                              ref={fileInputRef}
-                              onChange={handleImageUpload}
-                              accept="image/*"
-                              multiple
-                              className="hidden"
-                            />
+                          <div className="p-6 space-y-4">
+                            <div className="rounded-2xl bg-[#FFF8E8] border border-[#E8D7B5] px-4 py-3 text-sm text-muted-foreground">
+                              {walletAddress
+                                ? `Payout wallet connected: ${shortAddress(walletAddress)}`
+                                : "Connect a wallet before publishing your harvest."}
+                            </div>
 
-                            {imagePreviews.length === 0 ? (
-                              <div
-                                onClick={() => fileInputRef.current?.click()}
-                                className="cursor-pointer"
-                              >
-                                <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-white shadow-sm">
-                                  <Upload className="h-7 w-7 text-primary" />
-                                </div>
-                                <p className="font-medium">Upload photos of your rice</p>
-                                <p className="mt-1 text-sm text-muted-foreground">
-                                  JPG, PNG or GIF, up to 5 images
-                                </p>
-                                <Button
-                                  type="button"
-                                  variant="outline"
-                                  className="mt-4"
-                                  onClick={() => fileInputRef.current?.click()}
-                                >
-                                  <ImageIcon className="h-4 w-4 mr-2" />
-                                  Select Images
-                                </Button>
+                            <div className="space-y-2">
+                              <Label htmlFor="name">Product Name *</Label>
+                              <Input
+                                id="name"
+                                placeholder="e.g. Premium Dinorado Rice"
+                                value={formData.name}
+                                onChange={(e) =>
+                                  setFormData({ ...formData, name: e.target.value })
+                                }
+                                required
+                              />
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                              <div className="space-y-2">
+                                <Label htmlFor="price">Price (₱/kg) *</Label>
+                                <Input
+                                  id="price"
+                                  type="number"
+                                  step="0.01"
+                                  placeholder="0.00"
+                                  value={formData.price}
+                                  onChange={(e) =>
+                                    setFormData({ ...formData, price: e.target.value })
+                                  }
+                                  required
+                                />
                               </div>
-                            ) : (
-                              <div>
-                                <div className="grid grid-cols-3 gap-3 mb-4">
-                                  {imagePreviews.map((preview, index) => (
-                                    <div key={index} className="relative group">
-                                      <div className="aspect-square rounded-2xl overflow-hidden border border-[#E8D7B5] bg-white">
-                                        <Image
-                                          src={preview}
-                                          alt={`Product preview ${index + 1}`}
-                                          width={150}
-                                          height={150}
-                                          className="w-full h-full object-cover"
-                                        />
-                                      </div>
-                                      <button
-                                        type="button"
-                                        onClick={() => removeImage(index)}
-                                        className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full p-1 shadow-md opacity-0 group-hover:opacity-100 transition-opacity"
-                                      >
-                                        <X className="h-4 w-4" />
-                                      </button>
-                                    </div>
-                                  ))}
 
-                                  {imagePreviews.length < 5 && (
-                                    <div
-                                      onClick={() => fileInputRef.current?.click()}
-                                      className="aspect-square rounded-2xl border-2 border-dashed border-[#C89D57] bg-white flex items-center justify-center cursor-pointer hover:border-primary transition-colors"
-                                    >
-                                      <Plus className="h-8 w-8 text-primary" />
-                                    </div>
-                                  )}
+                              <div className="space-y-2">
+                                <Label htmlFor="quantity">Quantity (kg) *</Label>
+                                <Input
+                                  id="quantity"
+                                  type="number"
+                                  placeholder="0"
+                                  value={formData.quantity}
+                                  onChange={(e) =>
+                                    setFormData({ ...formData, quantity: e.target.value })
+                                  }
+                                  required
+                                />
+                              </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                              <div className="space-y-2">
+                                <Label htmlFor="location">Location *</Label>
+                                <Input
+                                  id="location"
+                                  placeholder="Province, Municipality"
+                                  value={formData.location}
+                                  onChange={(e) =>
+                                    setFormData({ ...formData, location: e.target.value })
+                                  }
+                                  required
+                                />
+                              </div>
+
+                              <div className="space-y-2">
+                                <Label htmlFor="harvestDate">Harvest Date</Label>
+                                <Input
+                                  id="harvestDate"
+                                  type="date"
+                                  value={formData.harvestDate}
+                                  onChange={(e) =>
+                                    setFormData({ ...formData, harvestDate: e.target.value })
+                                  }
+                                />
+                              </div>
+                            </div>
+
+                            <div className="space-y-2">
+                              <Label htmlFor="category">Category *</Label>
+                              <select
+                                id="category"
+                                value={formData.category}
+                                onChange={(e) =>
+                                  setFormData({ ...formData, category: e.target.value })
+                                }
+                                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                              >
+                                <option value="polished">Polished Rice</option>
+                                <option value="unpolished">Unpolished Rice</option>
+                                <option value="seeds">Seeds & Seedlings</option>
+                              </select>
+                            </div>
+
+                            <div className="space-y-2">
+                              <Label htmlFor="description">Description</Label>
+                              <Textarea
+                                id="description"
+                                placeholder="Describe grain quality, milling details, packaging, and harvest notes."
+                                className="min-h-[110px]"
+                                value={formData.description}
+                                onChange={(e) =>
+                                  setFormData({ ...formData, description: e.target.value })
+                                }
+                              />
+                            </div>
+
+                            <Button
+                              type="submit"
+                              className="w-full h-12 text-base"
+                              disabled={uploading || !walletAddress}
+                            >
+                              {uploading ? (
+                                <div className="flex items-center gap-2">
+                                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
+                                  Publishing Harvest...
                                 </div>
+                              ) : !walletAddress ? (
+                                "Connect Wallet to Publish"
+                              ) : (
+                                "Publish to Marketplace"
+                              )}
+                            </Button>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </form>
+                )}
 
+                {createMode === "funding" && (
+                  <form onSubmit={handleFundingSubmit}>
+                    <Card className="rounded-[28px] border-[3px] border-[#C89D57] bg-white shadow-md overflow-hidden">
+                      <CardContent className="p-6 space-y-4">
+                        <div className="rounded-2xl bg-[#FFF8E8] border border-[#E8D7B5] px-4 py-3 text-sm text-muted-foreground">
+                          Profit-sharing model: Farmers keep 60% of net profit, investors
+                          share 40%. No fixed guaranteed ROI.
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label>Campaign Title *</Label>
+                          <Input
+                            placeholder="e.g. Dinorado Rice Harvest Batch 01"
+                            value={fundingForm.title}
+                            onChange={(e) =>
+                              setFundingForm({ ...fundingForm, title: e.target.value })
+                            }
+                            required
+                          />
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label>Crop Type *</Label>
+                            <Input
+                              value={fundingForm.cropType}
+                              onChange={(e) =>
+                                setFundingForm({ ...fundingForm, cropType: e.target.value })
+                              }
+                              required
+                            />
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label>Location *</Label>
+                            <Input
+                              value={fundingForm.location}
+                              onChange={(e) =>
+                                setFundingForm({ ...fundingForm, location: e.target.value })
+                              }
+                              required
+                            />
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label>Funding Goal (₱) *</Label>
+                            <Input
+                              type="number"
+                              value={fundingForm.fundingGoal}
+                              onChange={(e) =>
+                                setFundingForm({
+                                  ...fundingForm,
+                                  fundingGoal: e.target.value,
+                                })
+                              }
+                              required
+                            />
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label>Minimum Investment (₱) *</Label>
+                            <Input
+                              type="number"
+                              value={fundingForm.minimumInvestment}
+                              onChange={(e) =>
+                                setFundingForm({
+                                  ...fundingForm,
+                                  minimumInvestment: e.target.value,
+                                })
+                              }
+                              required
+                            />
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label>Estimated Yield (kg) *</Label>
+                            <Input
+                              type="number"
+                              value={fundingForm.estimatedYieldKg}
+                              onChange={(e) =>
+                                setFundingForm({
+                                  ...fundingForm,
+                                  estimatedYieldKg: e.target.value,
+                                })
+                              }
+                              required
+                            />
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label>Target Sell Price (₱/kg) *</Label>
+                            <Input
+                              type="number"
+                              step="0.01"
+                              value={fundingForm.targetSellPricePerKg}
+                              onChange={(e) =>
+                                setFundingForm({
+                                  ...fundingForm,
+                                  targetSellPricePerKg: e.target.value,
+                                })
+                              }
+                              required
+                            />
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label>Estimated Production Cost (₱) *</Label>
+                            <Input
+                              type="number"
+                              value={fundingForm.estimatedProductionCost}
+                              onChange={(e) =>
+                                setFundingForm({
+                                  ...fundingForm,
+                                  estimatedProductionCost: e.target.value,
+                                })
+                              }
+                              required
+                            />
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label>Expected Harvest Date *</Label>
+                            <Input
+                              type="date"
+                              value={fundingForm.expectedHarvestDate}
+                              onChange={(e) =>
+                                setFundingForm({
+                                  ...fundingForm,
+                                  expectedHarvestDate: e.target.value,
+                                })
+                              }
+                              required
+                            />
+                          </div>
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label>Description</Label>
+                          <Textarea
+                            className="min-h-[120px]"
+                            placeholder="Describe what the funding covers: seeds, fertilizer, labor, drying, logistics, and harvest notes."
+                            value={fundingForm.description}
+                            onChange={(e) =>
+                              setFundingForm({
+                                ...fundingForm,
+                                description: e.target.value,
+                              })
+                            }
+                          />
+                        </div>
+
+                        <div className="rounded-2xl border border-dashed border-[#C89D57] bg-[#FFF8E8] p-4">
+                          <p className="text-sm font-medium mb-2">Optional campaign image</p>
+                          <input
+                            type="file"
+                            ref={fileInputRef}
+                            onChange={handleImageUpload}
+                            accept="image/*"
+                            multiple
+                            className="hidden"
+                          />
+
+                          {imagePreviews.length > 0 ? (
+                            <div className="space-y-3">
+                              <div className="grid grid-cols-3 gap-3">
+                                {imagePreviews.map((preview, index) => (
+                                  <div key={index} className="relative group">
+                                    <div className="aspect-square rounded-2xl overflow-hidden border border-[#E8D7B5] bg-white">
+                                      <Image
+                                        src={preview}
+                                        alt={`Campaign preview ${index + 1}`}
+                                        width={150}
+                                        height={150}
+                                        className="w-full h-full object-cover"
+                                      />
+                                    </div>
+                                    <button
+                                      type="button"
+                                      onClick={() => removeImage(index)}
+                                      className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full p-1 shadow-md opacity-0 group-hover:opacity-100 transition-opacity"
+                                    >
+                                      <X className="h-4 w-4" />
+                                    </button>
+                                  </div>
+                                ))}
+                              </div>
+
+                              {imagePreviews.length < 5 && (
                                 <Button
                                   type="button"
                                   variant="outline"
                                   onClick={() => fileInputRef.current?.click()}
                                 >
                                   <Upload className="h-4 w-4 mr-2" />
-                                  Add More Photos
+                                  Add Campaign Image
                                 </Button>
-                              </div>
-                            )}
-                          </div>
+                              )}
+                            </div>
+                          ) : (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={() => fileInputRef.current?.click()}
+                            >
+                              <Upload className="h-4 w-4 mr-2" />
+                              Upload Image
+                            </Button>
+                          )}
                         </div>
 
-                        <div className="p-6 space-y-4">
-                          <div className="rounded-2xl bg-[#FFF8E8] border border-[#E8D7B5] px-4 py-3 text-sm text-muted-foreground">
-                            {walletAddress
-                              ? `Payout wallet connected: ${shortAddress(walletAddress)}`
-                              : "Connect a wallet before publishing your harvest."}
-                          </div>
-
-                          <div className="space-y-2">
-                            <Label htmlFor="name">Product Name *</Label>
-                            <Input
-                              id="name"
-                              placeholder="e.g. Premium Dinorado Rice"
-                              value={formData.name}
-                              onChange={(e) =>
-                                setFormData({ ...formData, name: e.target.value })
-                              }
-                              required
-                            />
-                          </div>
-
-                          <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                              <Label htmlFor="price">Price (₱/kg) *</Label>
-                              <Input
-                                id="price"
-                                type="number"
-                                step="0.01"
-                                placeholder="0.00"
-                                value={formData.price}
-                                onChange={(e) =>
-                                  setFormData({ ...formData, price: e.target.value })
-                                }
-                                required
-                              />
-                            </div>
-
-                            <div className="space-y-2">
-                              <Label htmlFor="quantity">Quantity (kg) *</Label>
-                              <Input
-                                id="quantity"
-                                type="number"
-                                placeholder="0"
-                                value={formData.quantity}
-                                onChange={(e) =>
-                                  setFormData({ ...formData, quantity: e.target.value })
-                                }
-                                required
-                              />
-                            </div>
-                          </div>
-
-                          <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                              <Label htmlFor="location">Location *</Label>
-                              <Input
-                                id="location"
-                                placeholder="Province, Municipality"
-                                value={formData.location}
-                                onChange={(e) =>
-                                  setFormData({ ...formData, location: e.target.value })
-                                }
-                                required
-                              />
-                            </div>
-
-                            <div className="space-y-2">
-                              <Label htmlFor="harvestDate">Harvest Date</Label>
-                              <Input
-                                id="harvestDate"
-                                type="date"
-                                value={formData.harvestDate}
-                                onChange={(e) =>
-                                  setFormData({ ...formData, harvestDate: e.target.value })
-                                }
-                              />
-                            </div>
-                          </div>
-
-                          <div className="space-y-2">
-                          <Label htmlFor="category">Category *</Label>
-                          <select
-                            id="category"
-                            value={formData.category}
-                            onChange={(e) =>
-                              setFormData({ ...formData, category: e.target.value })
-                            }
-                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                          >
-                            <option value="polished">Polished Rice</option>
-                            <option value="unpolished">Unpolished Rice</option>
-                            <option value="seeds">Seeds & Seedlings</option>
-                          </select>
-                        </div>
-
-                          <div className="space-y-2">
-                            <Label htmlFor="description">Description</Label>
-                            <Textarea
-                              id="description"
-                              placeholder="Describe grain quality, milling details, packaging, and harvest notes."
-                              className="min-h-[110px]"
-                              value={formData.description}
-                              onChange={(e) =>
-                                setFormData({ ...formData, description: e.target.value })
-                              }
-                            />
-                          </div>
-
-                          <Button type="submit" className="w-full h-12 text-base" disabled={uploading || !walletAddress}>
-                            {uploading ? (
-                              <div className="flex items-center gap-2">
-                                <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
-                                Publishing Harvest...
-                              </div>
-                            ) : !walletAddress ? (
-                              "Connect Wallet to Publish"
-                            ) : (
-                              "Publish to Marketplace"
-                            )}
-                          </Button>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </form>
+                        <Button
+                          type="submit"
+                          className="w-full h-12 text-base"
+                          disabled={!walletAddress}
+                        >
+                          {!walletAddress
+                            ? "Connect Wallet to Create Campaign"
+                            : "Launch Funding Campaign"}
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  </form>
+                )}
               </>
             )}
 
@@ -1433,6 +2063,312 @@ export default function FarmerDashboard() {
                                     Delete
                                   </Button>
                                 </div>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
+            {activeSection === "funding" && (
+              <Card className="rounded-[28px] border-[3px] border-[#C89D57] bg-white shadow-md">
+                <CardContent className="p-6">
+                  {farmerHarvestCampaigns.length === 0 ? (
+                    <div className="rounded-2xl border border-dashed border-[#C89D57] bg-[#FFF8E8] p-10 text-center">
+                      <CircleDollarSign className="h-10 w-10 mx-auto text-primary mb-3" />
+                      <p className="font-semibold">No funding campaigns yet</p>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Launch your first profit-sharing harvest campaign.
+                      </p>
+                      <Button
+                        className="mt-4"
+                        onClick={() => {
+                          setActiveSection("create");
+                          setCreateMode("funding");
+                        }}
+                      >
+                        Create Funding Campaign
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {farmerHarvestCampaigns.map((campaign) => {
+                        const fundingPercent = Math.min(
+                          (campaign.fundedAmount / Math.max(campaign.fundingGoal, 1)) * 100,
+                          100
+                        );
+
+                        const estimatedRevenue =
+                          campaign.estimatedYieldKg * campaign.targetSellPricePerKg;
+
+                        const estimatedNetProfit = Math.max(
+                          estimatedRevenue - campaign.estimatedProductionCost,
+                          0
+                        );
+
+                        return (
+                          <div
+                            key={campaign.id}
+                            className="rounded-[26px] border-[2px] border-[#E8D7B5] bg-white p-4 shadow-sm"
+                          >
+                            <div className="flex flex-col gap-4">
+                              <div className="flex items-start justify-between gap-4">
+                                <div>
+                                  <h3 className="text-lg font-semibold">{campaign.title}</h3>
+                                  <p className="text-sm text-muted-foreground mt-1">
+                                    {campaign.location} • {campaign.cropType}
+                                  </p>
+                                </div>
+
+                                <span
+                                  className={`rounded-full px-3 py-1 text-xs font-bold ${getCampaignStatusClass(
+                                    campaign.status
+                                  )}`}
+                                >
+                                  {campaign.status}
+                                </span>
+                              </div>
+
+                              <p className="text-sm text-muted-foreground">
+                                {campaign.description || "No description provided."}
+                              </p>
+
+                              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 text-sm">
+                                <div className="rounded-2xl bg-[#FFF8E8] px-3 py-3">
+                                  <p className="text-[11px] text-muted-foreground">Funding Goal</p>
+                                  <p className="font-semibold mt-1">
+                                    ₱{campaign.fundingGoal.toLocaleString()}
+                                  </p>
+                                </div>
+
+                                <div className="rounded-2xl bg-[#FFF8E8] px-3 py-3">
+                                  <p className="text-[11px] text-muted-foreground">Funded</p>
+                                  <p className="font-semibold mt-1">
+                                    ₱{campaign.fundedAmount.toLocaleString()}
+                                  </p>
+                                </div>
+
+                                <div className="rounded-2xl bg-[#FFF8E8] px-3 py-3">
+                                  <p className="text-[11px] text-muted-foreground">Min Investment</p>
+                                  <p className="font-semibold mt-1">
+                                    ₱{campaign.minimumInvestment.toLocaleString()}
+                                  </p>
+                                </div>
+
+                                <div className="rounded-2xl bg-[#FFF8E8] px-3 py-3">
+                                  <p className="text-[11px] text-muted-foreground">Investors</p>
+                                  <p className="font-semibold mt-1">{campaign.investors.length}</p>
+                                </div>
+                              </div>
+
+                              <div>
+                                <div className="flex justify-between text-xs text-muted-foreground mb-1.5">
+                                  <span>Funding progress</span>
+                                  <span>{fundingPercent.toFixed(0)}%</span>
+                                </div>
+                                <div className="h-2.5 rounded-full bg-[#F0E6D2] overflow-hidden">
+                                  <div
+                                    className="h-full rounded-full bg-primary"
+                                    style={{ width: `${fundingPercent}%` }}
+                                  />
+                                </div>
+                              </div>
+
+                              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 text-sm">
+                                <div className="rounded-2xl bg-[#F7F8F3] px-3 py-3">
+                                  <p className="text-[11px] text-muted-foreground">Expected Yield</p>
+                                  <p className="font-semibold mt-1">
+                                    {campaign.estimatedYieldKg.toLocaleString()} kg
+                                  </p>
+                                </div>
+
+                                <div className="rounded-2xl bg-[#F7F8F3] px-3 py-3">
+                                  <p className="text-[11px] text-muted-foreground">Target Revenue</p>
+                                  <p className="font-semibold mt-1">
+                                    ₱{estimatedRevenue.toLocaleString()}
+                                  </p>
+                                </div>
+
+                                <div className="rounded-2xl bg-[#F7F8F3] px-3 py-3">
+                                  <p className="text-[11px] text-muted-foreground">Est. Net Profit</p>
+                                  <p className="font-semibold mt-1">
+                                    ₱{estimatedNetProfit.toLocaleString()}
+                                  </p>
+                                </div>
+
+                                <div className="rounded-2xl bg-[#F7F8F3] px-3 py-3">
+                                  <p className="text-[11px] text-muted-foreground">Profit Split</p>
+                                  <p className="font-semibold mt-1">
+                                    {campaign.profitShareFarmer}% / {campaign.profitShareInvestors}%
+                                  </p>
+                                </div>
+                              </div>
+
+                              {campaign.status === "sold" && (
+                                <div className="rounded-2xl border border-green-200 bg-green-50 p-4 space-y-3">
+                                  <div className="flex items-center gap-2 text-green-700 font-semibold">
+                                    <CheckCircle className="h-4 w-4" />
+                                    Settlement Summary
+                                  </div>
+
+                                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 text-sm">
+                                    <div className="rounded-2xl bg-white px-3 py-3">
+                                      <p className="text-[11px] text-muted-foreground">Actual Yield</p>
+                                      <p className="font-semibold mt-1">
+                                        {(campaign.actualYieldKg ?? 0).toLocaleString()} kg
+                                      </p>
+                                    </div>
+
+                                    <div className="rounded-2xl bg-white px-3 py-3">
+                                      <p className="text-[11px] text-muted-foreground">Revenue</p>
+                                      <p className="font-semibold mt-1">
+                                        ₱{Number(campaign.totalRevenue ?? 0).toLocaleString()}
+                                      </p>
+                                    </div>
+
+                                    <div className="rounded-2xl bg-white px-3 py-3">
+                                      <p className="text-[11px] text-muted-foreground">Net Profit</p>
+                                      <p className="font-semibold mt-1">
+                                        ₱{Number(campaign.netProfit ?? 0).toLocaleString()}
+                                      </p>
+                                    </div>
+
+                                    <div className="rounded-2xl bg-white px-3 py-3">
+                                      <p className="text-[11px] text-muted-foreground">Settled At</p>
+                                      <p className="font-semibold mt-1">
+                                        {campaign.settledAt
+                                          ? new Date(campaign.settledAt).toLocaleDateString()
+                                          : "—"}
+                                      </p>
+                                    </div>
+                                  </div>
+
+                                  <div className="grid grid-cols-2 gap-3 text-sm">
+                                    <div className="rounded-2xl bg-[#F7F8F3] px-3 py-3">
+                                      <p className="text-[11px] text-muted-foreground">Investor Pool (40%)</p>
+                                      <p className="font-semibold mt-1">
+                                        ₱{Number(campaign.investorProfitPool ?? 0).toLocaleString()}
+                                      </p>
+                                    </div>
+
+                                    <div className="rounded-2xl bg-[#FFF8E8] px-3 py-3">
+                                      <p className="text-[11px] text-muted-foreground">Farmer Share (60%)</p>
+                                      <p className="font-semibold mt-1">
+                                        ₱{Number(campaign.farmerProfit ?? 0).toLocaleString()}
+                                      </p>
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
+
+                              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 text-sm">
+                                <div className="rounded-2xl bg-[#FFF8E8] px-3 py-3">
+                                  <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
+                                    <CalendarDays className="h-3.5 w-3.5" />
+                                    Expected Harvest
+                                  </div>
+                                  <p className="font-semibold mt-1">
+                                    {campaign.expectedHarvestDate}
+                                  </p>
+                                </div>
+
+                                <div className="rounded-2xl bg-[#FFF8E8] px-3 py-3">
+                                  <p className="text-[11px] text-muted-foreground">
+                                    Remaining Need
+                                  </p>
+                                  <p className="font-semibold mt-1">
+                                    ₱
+                                    {Math.max(
+                                      campaign.fundingGoal - campaign.fundedAmount,
+                                      0
+                                    ).toLocaleString()}
+                                  </p>
+                                </div>
+
+                                <div className="rounded-2xl bg-[#FFF8E8] px-3 py-3">
+                                  <p className="text-[11px] text-muted-foreground">
+                                    Farmer Share
+                                  </p>
+                                  <p className="font-semibold mt-1">
+                                    {campaign.profitShareFarmer}%
+                                  </p>
+                                </div>
+
+                                <div className="rounded-2xl bg-[#FFF8E8] px-3 py-3">
+                                  <p className="text-[11px] text-muted-foreground">
+                                    Investor Share
+                                  </p>
+                                  <p className="font-semibold mt-1">
+                                    {campaign.profitShareInvestors}%
+                                  </p>
+                                </div>
+                              </div>
+
+                              <div className="flex flex-wrap gap-2">
+                                {campaign.status === "funding" && (
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => {
+                                      updateHarvestCampaign(campaign.id, { status: "growing" });
+                                      toast({
+                                        title: "Campaign updated",
+                                        description: "Campaign marked as growing.",
+                                      });
+                                    }}
+                                  >
+                                    <Sprout className="h-4 w-4 mr-2" />
+                                    Mark Growing
+                                  </Button>
+                                )}
+
+                                {campaign.status === "growing" && (
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => {
+                                      updateHarvestCampaign(campaign.id, { status: "harvested" });
+                                      toast({
+                                        title: "Campaign updated",
+                                        description: "Campaign marked as harvested.",
+                                      });
+                                    }}
+                                  >
+                                    <Archive className="h-4 w-4 mr-2" />
+                                    Mark Harvested
+                                  </Button>
+                                )}
+
+                                {campaign.status === "harvested" && (
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => openSettlementModal(campaign)}
+                                  >
+                                    <CheckCircle className="h-4 w-4 mr-2" />
+                                    Settle Campaign
+                                  </Button>
+                                )}
+
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => {
+                                    deleteHarvestCampaign(campaign.id);
+                                    toast({
+                                      title: "Campaign deleted",
+                                      description: "Funding campaign removed.",
+                                    });
+                                  }}
+                                  className="text-red-600 hover:text-red-700"
+                                >
+                                  <Trash2 className="h-4 w-4 mr-2" />
+                                  Delete
+                                </Button>
                               </div>
                             </div>
                           </div>
@@ -1626,13 +2562,15 @@ export default function FarmerDashboard() {
                   <Card className="rounded-[28px] border-[3px] border-[#C89D57] bg-white shadow-md">
                     <CardContent className="p-5">
                       <div className="flex items-center justify-between mb-3">
-                        <span className="text-sm text-muted-foreground">Released Payouts</span>
+                        <span className="text-sm text-muted-foreground">Funding Raised</span>
                         <ArrowUpRight className="h-5 w-5 text-primary" />
                       </div>
                       <p className="text-2xl font-bold">
-                        ₱{releasedPayoutAmount.toLocaleString()}
+                        ₱{totalFundedAmount.toLocaleString()}
                       </p>
-                      <p className="text-xs text-muted-foreground mt-1">Funds released to wallet</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Out of ₱{totalFundingGoal.toLocaleString()} total campaign goals
+                      </p>
                     </CardContent>
                   </Card>
                 </div>
@@ -1775,6 +2713,19 @@ export default function FarmerDashboard() {
                       </div>
                     </div>
 
+                    <div className="grid sm:grid-cols-2 gap-3">
+                      <div className="rounded-2xl bg-[#F7F8F3] p-4">
+                        <p className="text-xs text-muted-foreground">Funding Campaigns</p>
+                        <p className="mt-1 text-xl font-bold">{farmerHarvestCampaigns.length}</p>
+                      </div>
+                      <div className="rounded-2xl bg-[#F7F8F3] p-4">
+                        <p className="text-xs text-muted-foreground">Capital Raised</p>
+                        <p className="mt-1 text-xl font-bold">
+                          ₱{totalFundedAmount.toLocaleString()}
+                        </p>
+                      </div>
+                    </div>
+
                     <div className="pt-2 border-t">
                       <p className="text-sm font-medium mb-3">Low Stock Harvests</p>
                       {lowStockProducts.length === 0 ? (
@@ -1821,6 +2772,11 @@ export default function FarmerDashboard() {
                 </div>
 
                 <div className="flex justify-between items-center">
+                  <span className="text-xs text-muted-foreground">Funding Campaigns</span>
+                  <span className="font-bold">{activeFundingCampaignsCount}</span>
+                </div>
+
+                <div className="flex justify-between items-center">
                   <span className="text-xs text-muted-foreground">Pending Orders</span>
                   <span className="font-bold">{pendingOrdersCount}</span>
                 </div>
@@ -1833,7 +2789,7 @@ export default function FarmerDashboard() {
                 <div className="pt-2 border-t space-y-2 text-xs text-muted-foreground">
                   <p>• Keep photos bright and clear</p>
                   <p>• Update stock once orders are fulfilled</p>
-                  <p>• Use harvest dates to build buyer trust</p>
+                  <p>• Funding campaigns should show realistic costs</p>
                 </div>
               </CardContent>
             </Card>
@@ -1937,6 +2893,145 @@ export default function FarmerDashboard() {
           </div>
         </div>
       )}
+
+      {settlingCampaign && (
+      <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center px-4">
+        <div className="w-full max-w-lg rounded-[28px] bg-white border-[3px] border-[#C89D57] shadow-xl">
+          <div className="flex items-center justify-between px-6 py-4 border-b">
+            <div>
+              <h3 className="font-semibold text-lg">Settle Campaign</h3>
+              <p className="text-sm text-muted-foreground">
+                Record actual sales and calculate final profit sharing.
+              </p>
+            </div>
+            <Button variant="ghost" size="icon" onClick={() => setSettlingCampaign(null)}>
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+
+          <div className="p-6 space-y-4">
+            <div className="rounded-2xl bg-[#FFF8E8] border border-[#E8D7B5] px-4 py-3">
+              <p className="font-medium">{settlingCampaign.title}</p>
+              <p className="text-sm text-muted-foreground mt-1">
+                {settlingCampaign.location} • {settlingCampaign.cropType}
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Actual Yield (kg)</Label>
+                <Input
+                  type="number"
+                  value={settlementForm.actualYieldKg}
+                  onChange={(e) =>
+                    setSettlementForm({
+                      ...settlementForm,
+                      actualYieldKg: e.target.value,
+                    })
+                  }
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Actual Sell Price (₱/kg)</Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  value={settlementForm.actualSellPricePerKg}
+                  onChange={(e) =>
+                    setSettlementForm({
+                      ...settlementForm,
+                      actualSellPricePerKg: e.target.value,
+                    })
+                  }
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Actual Production Cost (₱)</Label>
+              <Input
+                type="number"
+                value={settlementForm.actualProductionCost}
+                onChange={(e) =>
+                  setSettlementForm({
+                    ...settlementForm,
+                    actualProductionCost: e.target.value,
+                  })
+                }
+              />
+            </div>
+
+            {Number(settlementForm.actualYieldKg) > 0 &&
+              Number(settlementForm.actualSellPricePerKg) > 0 &&
+              Number(settlementForm.actualProductionCost) > 0 && (
+                <div className="rounded-2xl border border-[#E8D7B5] bg-[#F7F8F3] p-4 space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span>Total Revenue</span>
+                    <span className="font-semibold">
+                      ₱
+                      {(
+                        Number(settlementForm.actualYieldKg) *
+                        Number(settlementForm.actualSellPricePerKg)
+                      ).toLocaleString()}
+                    </span>
+                  </div>
+
+                  <div className="flex justify-between">
+                    <span>Net Profit</span>
+                    <span className="font-semibold">
+                      ₱
+                      {Math.max(
+                        Number(settlementForm.actualYieldKg) *
+                          Number(settlementForm.actualSellPricePerKg) -
+                          Number(settlementForm.actualProductionCost),
+                        0
+                      ).toLocaleString()}
+                    </span>
+                  </div>
+
+                  <div className="flex justify-between">
+                    <span>Investor Pool (40%)</span>
+                    <span className="font-semibold">
+                      ₱
+                      {(
+                        Math.max(
+                          Number(settlementForm.actualYieldKg) *
+                            Number(settlementForm.actualSellPricePerKg) -
+                            Number(settlementForm.actualProductionCost),
+                          0
+                        ) * 0.4
+                      ).toLocaleString()}
+                    </span>
+                  </div>
+
+                  <div className="flex justify-between">
+                    <span>Farmer Share (60%)</span>
+                    <span className="font-semibold text-primary">
+                      ₱
+                      {(
+                        Math.max(
+                          Number(settlementForm.actualYieldKg) *
+                            Number(settlementForm.actualSellPricePerKg) -
+                            Number(settlementForm.actualProductionCost),
+                          0
+                        ) * 0.6
+                      ).toLocaleString()}
+                    </span>
+                  </div>
+                </div>
+              )}
+          </div>
+
+          <div className="px-6 py-4 border-t flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setSettlingCampaign(null)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSettleCampaign}>Save Settlement</Button>
+          </div>
+        </div>
+      </div>
+    )}
     </div>
   );
 }
