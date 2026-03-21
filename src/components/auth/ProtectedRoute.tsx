@@ -5,22 +5,27 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/providers/AuthProvider";
 import { Loader2 } from "lucide-react";
 
-export default function HomePage() {
+interface ProtectedRouteProps {
+  children: React.ReactNode;
+  allowedRoles?: ("farmer" | "buyer" | "logistics")[];
+}
+
+export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) {
   const { user, isLoading } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
     if (!isLoading) {
-      if (user) {
-        // Redirect based on role
+      if (!user) {
+        router.push("/auth");
+      } else if (allowedRoles && !allowedRoles.includes(user.role)) {
+        // Redirect to appropriate dashboard based on role
         if (user.role === "farmer") router.push("/farmer");
         else if (user.role === "logistics") router.push("/logistics");
         else router.push("/market");
-      } else {
-        router.push("/auth");
       }
     }
-  }, [user, isLoading, router]);
+  }, [user, isLoading, router, allowedRoles]);
 
   if (isLoading) {
     return (
@@ -30,5 +35,13 @@ export default function HomePage() {
     );
   }
 
-  return null;
+  if (!user) {
+    return null;
+  }
+
+  if (allowedRoles && !allowedRoles.includes(user.role)) {
+    return null;
+  }
+
+  return <>{children}</>;
 }

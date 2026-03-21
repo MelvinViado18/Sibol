@@ -1,10 +1,22 @@
-import type {Metadata} from 'next';
-import './globals.css';
+import type { Metadata } from "next";
+import { Inter, Source_Code_Pro } from "next/font/google";
+import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
+import { ClientProvider } from "@/providers/ClientProvider";
+
+const inter = Inter({
+  variable: "--font-inter",
+  subsets: ["latin"],
+});
+
+const sourceCodePro = Source_Code_Pro({
+  variable: "--font-source-code-pro",
+  subsets: ["latin"],
+});
 
 export const metadata: Metadata = {
-  title: 'SibolMarket | Decentralized Farm-to-Market',
-  description: 'Empowering farmers with blockchain-based direct trade on Base.',
+  title: "SibolMarket | Decentralized Farm-to-Market",
+  description: "Empowering farmers with blockchain-based direct trade on Base.",
 };
 
 export default function RootLayout({
@@ -13,15 +25,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Code+Pro:wght@400;600&display=swap" rel="stylesheet" />
-      </head>
-      <body className="font-body antialiased bg-background text-foreground min-h-screen">
-        {children}
-        <Toaster />
+    <html lang="en" className={`${inter.variable} ${sourceCodePro.variable}`}>
+      <body className="font-sans antialiased min-h-screen">
+        <ClientProvider>
+          {children}
+          <Toaster />
+        </ClientProvider>
       </body>
     </html>
   );
