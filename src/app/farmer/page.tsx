@@ -108,7 +108,12 @@ type Order = {
   createdAt?: string;
 };
 
-type HarvestStatus = "funding" | "growing" | "harvested" | "sold";
+type HarvestStatus =
+  | "funding"
+  | "growing"
+  | "harvested"
+  | "sold"
+  | "cancelled";
 
 type HarvestInvestor = {
   userId: string;
@@ -470,8 +475,22 @@ export default function FarmerDashboard() {
 
   const deleteHarvestCampaign = (campaignId: string) => {
     const currentCampaigns = getHarvestCampaigns();
+    const campaign = currentCampaigns.find((item) => item.id === campaignId);
+
+    if (!campaign) return;
+
+    if (campaign.investors.length > 0 || campaign.fundedAmount > 0) {
+      toast({
+        title: "Cannot delete campaign",
+        description:
+          "This campaign already has investor funds. Cancel it instead so investors can be refunded.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     const updatedCampaigns = currentCampaigns.filter(
-      (campaign) => campaign.id !== campaignId
+      (item) => item.id !== campaignId
     );
 
     localStorage.setItem(HARVESTS_STORAGE_KEY, JSON.stringify(updatedCampaigns));
@@ -483,7 +502,58 @@ export default function FarmerDashboard() {
         newValue: JSON.stringify(updatedCampaigns),
       })
     );
+
+    toast({
+      title: "Campaign deleted",
+      description: "The funding campaign has been removed.",
+    });
   };
+
+  const cancelHarvestCampaign = (campaignId: string) => {
+      const currentCampaigns = getHarvestCampaigns();
+      const campaign = currentCampaigns.find((item) => item.id === campaignId);
+
+      if (!campaign) return;
+
+      if (campaign.status === "sold") {
+        toast({
+          title: "Cannot cancel campaign",
+          description: "A sold campaign can no longer be cancelled.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      campaign.investors.forEach((investor) => {
+        updateWalletBalance(investor.userId, investor.amount);
+      });
+
+      const updatedCampaigns = currentCampaigns.map((item) =>
+        item.id === campaignId
+          ? {
+              ...item,
+              status: "cancelled" as HarvestStatus,
+              fundedAmount: 0,
+              investors: [],
+            }
+          : item
+      );
+
+      localStorage.setItem(HARVESTS_STORAGE_KEY, JSON.stringify(updatedCampaigns));
+      setHarvestCampaigns(updatedCampaigns);
+
+      window.dispatchEvent(
+        new StorageEvent("storage", {
+          key: HARVESTS_STORAGE_KEY,
+          newValue: JSON.stringify(updatedCampaigns),
+        })
+      );
+
+      toast({
+        title: "Campaign cancelled",
+        description: "All investors were refunded and the campaign is now cancelled.",
+      });
+    };
 
   useEffect(() => {
     const savedWallet = localStorage.getItem(FARMER_WALLET_KEY);
@@ -1058,6 +1128,8 @@ export default function FarmerDashboard() {
         return "bg-amber-100 text-amber-700";
       case "sold":
         return "bg-slate-200 text-slate-700";
+      case "cancelled":
+        return "bg-red-100 text-red-700";
       default:
         return "bg-slate-100 text-slate-700";
     }
@@ -2354,21 +2426,76 @@ export default function FarmerDashboard() {
                                   </Button>
                                 )}
 
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => {
-                                    deleteHarvestCampaign(campaign.id);
-                                    toast({
-                                      title: "Campaign deleted",
-                                      description: "Funding campaign removed.",
-                                    });
-                                  }}
-                                  className="text-red-600 hover:text-red-700"
-                                >
-                                  <Trash2 className="h-4 w-4 mr-2" />
-                                  Delete
-                                </Button>
+                                <div className="flex flex-wrap gap-2">
+                                {campaign.status === "funding" && (
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => {
+                                      updateHarvestCampaign(campaign.id, { status: "growing" });
+                                      toast({
+                                        title: "Campaign updated",
+                                        description: "Campaign marked as growing.",
+                                      });
+                                    }}
+                                  >
+                                    <Sprout className="h-4 w-4 mr-2" />
+                                    Mark Growing
+                                  </Button>
+                                )}
+
+                                {campaign.status === "growing" && (
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => {
+                                      updateHarvestCampaign(campaign.id, { status: "harvested" });
+                                      toast({
+                                        title: "Campaign updated",
+                                        description: "Campaign marked as harvested.",
+                                      });
+                                    }}
+                                  >
+                                    <Archive className="h-4 w-4 mr-2" />
+                                    Mark Harvested
+                                  </Button>
+                                )}
+
+                                {campaign.status === "harvested" && (
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => openSettlementModal(campaign)}
+                                  >
+                                    <CheckCircle className="h-4 w-4 mr-2" />
+                                    Settle Campaign
+                                  </Button>
+                                )}
+
+                                {campaign.status !== "sold" && campaign.status !== "cancelled" && (
+                                  campaign.investors.length > 0 || campaign.fundedAmount > 0 ? (
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => cancelHarvestCampaign(campaign.id)}
+                                      className="text-orange-600 hover:text-orange-700"
+                                    >
+                                      <AlertTriangle className="h-4 w-4 mr-2" />
+                                      Cancel & Refund
+                                    </Button>
+                                  ) : (
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => deleteHarvestCampaign(campaign.id)}
+                                      className="text-red-600 hover:text-red-700"
+                                    >
+                                      <Trash2 className="h-4 w-4 mr-2" />
+                                      Delete
+                                    </Button>
+                                  )
+                                )}
+                              </div>
                               </div>
                             </div>
                           </div>
