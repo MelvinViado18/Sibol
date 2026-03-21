@@ -2427,22 +2427,7 @@ export default function FarmerDashboard() {
                                 )}
 
                                 <div className="flex flex-wrap gap-2">
-                                {campaign.status === "funding" && (
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => {
-                                      updateHarvestCampaign(campaign.id, { status: "growing" });
-                                      toast({
-                                        title: "Campaign updated",
-                                        description: "Campaign marked as growing.",
-                                      });
-                                    }}
-                                  >
-                                    <Sprout className="h-4 w-4 mr-2" />
-                                    Mark Growing
-                                  </Button>
-                                )}
+                                
 
                                 {campaign.status === "growing" && (
                                   <Button
