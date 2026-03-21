@@ -61,7 +61,7 @@ type Product = {
   createdAt?: string;
 };
 
-type HarvestStatus = "funding" | "growing" | "harvested" | "sold";
+type HarvestStatus = "funding" | "growing" | "harvested" | "sold" | "cancelled";
 
 type HarvestInvestor = {
   userId: string;
@@ -640,6 +640,11 @@ export default function MarketplacePage() {
     let harvests = [...harvestCampaigns];
 
     harvests = harvests.filter((harvest) => {
+      // Skip cancelled campaigns completely
+      if (harvest.status === "cancelled") {
+        return false;
+      }
+
       const matchesSearch =
         harvest.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
         harvest.location.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -1230,7 +1235,10 @@ export default function MarketplacePage() {
               <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3">
                 {filteredProducts.map((product) => (
                   <div key={product.id} className="space-y-2">
-                    <ProductCard {...product} />
+                    <ProductCard 
+                      {...product} 
+                      rating={product.rating ?? 4.5}  // Provide default rating if undefined
+                    />
                     <div className="flex flex-wrap gap-2 px-1">
                       {product.verified && (
                         <span className="inline-flex items-center rounded-full border border-[#B8D6B3] bg-[#E9F6E5] px-2.5 py-1 text-xs font-medium text-[#2E6C3C]">
