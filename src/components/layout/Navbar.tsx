@@ -178,6 +178,7 @@ export function Navbar() {
   const navLinks = [
     { name: "Marketplace", href: "/market", icon: ShoppingBag },
     { name: "My Orders", href: "/orders", icon: Package },
+    { name: "My Investments", href: "/investments", icon: Wallet },
     { name: "Farmer Portal", href: "/farmer", icon: LayoutDashboard },
     ...(user ? [{ name: "Logistics Portal", href: "/logistics", icon: Truck }] : []),
     { name: "About Sibol", href: "/#about", icon: Leaf },
