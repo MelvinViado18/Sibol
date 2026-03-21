@@ -42,6 +42,14 @@ import Link from "next/link";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/providers/AuthProvider";
 
+declare global {
+  interface Window {
+    ethereum?: {
+      request: (args: { method: string }) => Promise<string[]>;
+    };
+  }
+}
+
 const ORDERS_STORAGE_KEY = "sibol_orders";
 const CHECKOUT_PRODUCT_KEY = "sibol_checkout_product";
 
@@ -61,7 +69,7 @@ type ShippingDetails = {
   deliveryInstructions: string;
 };
 
-export default function CheckoutPage() {
+export default function CheckoutClient() {
   const searchParams = useSearchParams();
   const { toast } = useToast();
   const { user } = useAuth();
@@ -115,6 +123,13 @@ export default function CheckoutPage() {
           ) {
             setOrderType(parsedProduct.selectedOrderType);
           }
+
+          return;
+        }
+
+        // Optional fallback if localStorage is empty and URL has an id
+        if (productId) {
+          console.log("Checkout product id from URL:", productId);
         }
       } catch (error) {
         console.error("Failed to load checkout product:", error);
@@ -124,7 +139,7 @@ export default function CheckoutPage() {
     };
 
     loadCheckoutProduct();
-  }, []);
+  }, [productId]);
 
   const shippingPerKg = 2.5;
 
@@ -286,6 +301,7 @@ export default function CheckoutPage() {
         orderType,
         quantity,
         savings: totalSavings,
+        walletAddress,
         item: {
           id: product.id,
           name: product.name,
@@ -371,8 +387,6 @@ export default function CheckoutPage() {
       </div>
     );
   }
-
-
 
   return (
     <div className="min-h-screen bg-[#F6EEDC] text-[#3C2A18]">
@@ -771,7 +785,8 @@ export default function CheckoutPage() {
                           <p className="font-black text-[#2F1F10]">Demo payment mode</p>
                           <p className="mt-1 text-sm leading-relaxed text-[#7A6547]">
                             This is a prototype checkout. No real wallet charge will happen yet,
-                            but the order will be saved as <span className="font-black">paid in escrow</span>.
+                            but the order will be saved as{" "}
+                            <span className="font-black">paid in escrow</span>.
                           </p>
                         </div>
                       </div>
@@ -793,6 +808,15 @@ export default function CheckoutPage() {
                         {shippingDetails.landmark && <p>Landmark: {shippingDetails.landmark}</p>}
                       </div>
                     </div>
+
+                    {isWalletConnected && walletAddress && (
+                      <div className="rounded-[24px] border border-[#B8D6B3] bg-[#E9F6E5] p-4 text-sm text-[#355B32]">
+                        Connected wallet:{" "}
+                        <span className="font-black">
+                          {walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}
+                        </span>
+                      </div>
+                    )}
 
                     <div className="flex gap-3 pt-2">
                       <Button
@@ -920,7 +944,7 @@ export default function CheckoutPage() {
               <Card className="sticky top-24 rounded-[30px] border-[3px] border-[#C89D57] bg-[#FFF9EC] shadow-[0_20px_60px_rgba(88,61,31,0.16)]">
                 <CardContent className="space-y-6 p-6 lg:p-7">
                   <div className="rounded-[24px] border-[3px] border-[#B98B4A] bg-gradient-to-br from-[#FFF1C5] via-[#FFF8E8] to-[#F8E2AA] p-5">
-                    <div className="mb-2 inline-flex items-center gap-2 rounded-full bg-[#FFF9EC] px-3 py-1 border border-[#E5C97B]">
+                    <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-[#E5C97B] bg-[#FFF9EC] px-3 py-1">
                       <Sparkles className="h-4 w-4 text-[#7A5618]" />
                       <span className="text-[11px] font-black uppercase tracking-wide text-[#7A5618]">
                         Checkout Summary
