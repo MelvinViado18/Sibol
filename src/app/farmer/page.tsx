@@ -46,6 +46,7 @@ import Image from "next/image";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/providers/AuthProvider";
 import { updateWalletBalance } from "@/lib/wallet-utils";
+import { ethers } from "ethers";
 
 declare global {
   interface Window {
@@ -190,6 +191,7 @@ function WoodSign({
     </div>
   );
 }
+
 
 export default function FarmerDashboard() {
   const { user } = useAuth();
@@ -557,7 +559,18 @@ export default function FarmerDashboard() {
 
   useEffect(() => {
     const savedWallet = localStorage.getItem(FARMER_WALLET_KEY);
-    if (savedWallet) setWalletAddress(savedWallet);
+
+    if (!savedWallet || !ethers.isAddress(savedWallet)) {
+      localStorage.removeItem(FARMER_WALLET_KEY);
+      localStorage.removeItem("sibol_harvests");
+    }
+
+    if (savedWallet && ethers.isAddress(savedWallet)) {
+      setWalletAddress(savedWallet);
+    } else {
+      localStorage.removeItem(FARMER_WALLET_KEY);
+      setWalletAddress("");
+    }
 
     refreshDashboardData();
 
@@ -569,9 +582,15 @@ export default function FarmerDashboard() {
         e.key === HARVESTS_STORAGE_KEY
       ) {
         if (e.key === FARMER_WALLET_KEY) {
-          const newWallet = localStorage.getItem(FARMER_WALLET_KEY) || "";
-          setWalletAddress(newWallet);
+          const newWallet = localStorage.getItem(FARMER_WALLET_KEY);
+
+          if (newWallet && ethers.isAddress(newWallet)) {
+            setWalletAddress(newWallet);
+          } else {
+            setWalletAddress("");
+          }
         }
+
         refreshDashboardData();
       }
     };
@@ -602,9 +621,14 @@ export default function FarmerDashboard() {
         }
       }
 
-      const demoWallet = "0xA1B2C3D4E5F60718293ABCDEF4567890ABC12345";
-      setWalletAddress(demoWallet);
-      localStorage.setItem(FARMER_WALLET_KEY, demoWallet);
+      if (!window.ethereum) {
+        toast({
+          title: "Wallet required",
+          description: "Please install MetaMask.",
+          variant: "destructive",
+        });
+        return;
+      }
 
       toast({
         title: "Demo wallet connected",
@@ -1451,6 +1475,8 @@ export default function FarmerDashboard() {
                       >
                         Disconnect
                       </Button>
+
+                      
                     </div>
                   </>
                 ) : (
