@@ -10,6 +10,8 @@ import {
   Leaf,
   LayoutDashboard,
   LogOut,
+  Truck,
+  Package,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -175,7 +177,9 @@ export function Navbar() {
 
   const navLinks = [
     { name: "Marketplace", href: "/market", icon: ShoppingBag },
+    { name: "My Orders", href: "/orders", icon: Package },
     { name: "Farmer Portal", href: "/farmer", icon: LayoutDashboard },
+    ...(user ? [{ name: "Logistics Portal", href: "/logistics", icon: Truck }] : []),
     { name: "About Sibol", href: "/#about", icon: Leaf },
   ];
 
@@ -211,7 +215,23 @@ export function Navbar() {
           </div>
 
           <div className="hidden md:flex items-center gap-6">
-            {navLinks.map((link) => (
+            {navLinks.map((link) => {
+            const isMyOrders = link.name === "My Orders";
+
+            if (isMyOrders && !isConnected) {
+              return (
+                <button
+                  key={link.name}
+                  type="button"
+                  onClick={connectWallet}
+                  className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary"
+                >
+                  {link.name}
+                </button>
+              );
+            }
+
+            return (
               <Link
                 key={link.name}
                 href={link.href}
@@ -219,7 +239,8 @@ export function Navbar() {
               >
                 {link.name}
               </Link>
-            ))}
+            );
+          })}
 
             <div className="flex items-center gap-3">
               <Button
@@ -279,7 +300,27 @@ export function Navbar() {
 
       <div className={cn("md:hidden border-t bg-background", isOpen ? "block" : "hidden")}>
         <div className="container mx-auto px-4 py-4 space-y-4">
-          {navLinks.map((link) => (
+          {navLinks.map((link) => {
+          const isMyOrders = link.name === "My Orders";
+
+          if (isMyOrders && !isConnected) {
+            return (
+              <button
+                key={link.name}
+                type="button"
+                onClick={() => {
+                  setIsOpen(false);
+                  connectWallet();
+                }}
+                className="flex w-full items-center gap-3 text-base font-medium text-muted-foreground p-2 hover:bg-secondary rounded-md"
+              >
+                <link.icon className="h-5 w-5" />
+                {link.name}
+              </button>
+            );
+          }
+
+          return (
             <Link
               key={link.name}
               href={link.href}
@@ -289,7 +330,8 @@ export function Navbar() {
               <link.icon className="h-5 w-5" />
               {link.name}
             </Link>
-          ))}
+          );
+        })}
 
           {!user ? (
             <div className="space-y-2 pt-2 border-t">
