@@ -702,77 +702,105 @@ export default function MarketplacePage() {
   };
 
   const handleInvest = async (harvestId: string) => {
-  const harvest = harvestCampaigns.find((item) => item.id === harvestId);
-  if (!harvest) return;
+    const harvest = harvestCampaigns.find((item) => item.id === harvestId);
+    if (!harvest) return;
 
-  const rawAmount =
-    harvestInvestments[harvestId] ?? String(harvest.minimumInvestment);
-  const amount = Number(rawAmount);
+    const rawAmount =
+      harvestInvestments[harvestId] ?? String(harvest.minimumInvestment);
+    const amount = Number(rawAmount);
 
-  if (!amount || Number.isNaN(amount)) {
-    alert("Please enter a valid investment amount.");
-    return;
-  }
-
-  try {
-    if (!window.ethereum) {
-      alert("Wallet not connected.");
+    if (!amount || Number.isNaN(amount)) {
+      alert("Please enter a valid investment amount.");
       return;
     }
 
-    const recipient = harvest.farmerWallet?.trim();
+    try {
+      if (!window.ethereum) {
+        alert("Wallet not connected.");
+        return;
+      }
 
-    if (!recipient) {
-      alert("This harvest has no farmer wallet address yet.");
-      return;
+      const recipient = harvest.farmerWallet?.trim();
+
+      if (!recipient) {
+        alert("This harvest has no farmer wallet address yet.");
+        return;
+      }
+
+      if (!ethers.isAddress(recipient)) {
+        alert("Invalid farmer wallet address.");
+        return;
+      }
+
+      const provider = new ethers.BrowserProvider(window.ethereum);
+      const signer = await provider.getSigner();
+      const sender = await signer.getAddress();
+
+      let txHash = "";
+
+      if (sender.toLowerCase() !== recipient.toLowerCase()) {
+        const tx = await signer.sendTransaction({
+          to: recipient,
+          value: ethers.parseEther("0.000001"),
+        });
+
+        await tx.wait();
+        txHash = tx.hash;
+      } else {
+        console.log("Demo mode: sender and recipient are the same, skipping on-chain transfer.");
+      }
+
+      const result = investInHarvest(harvestId, amount);
+
+      const updatedCampaign = result.campaign;
+      const nextFundedAmount = updatedCampaign.fundedAmount;
+
+      const nextStatus =
+        nextFundedAmount >= updatedCampaign.fundingGoal
+          ? "growing"
+          : "funding";
+
+      const finalCampaign = {
+        ...updatedCampaign,
+        fundedAmount: Math.min(nextFundedAmount, updatedCampaign.fundingGoal),
+        status: nextStatus,
+      };
+
+      const updatedCampaigns = harvestCampaigns.map((item) =>
+        item.id === harvestId ? finalCampaign : item
+      );
+
+      setHarvestCampaigns(updatedCampaigns);
+
+      localStorage.setItem(
+        HARVESTS_STORAGE_KEY,
+        JSON.stringify(updatedCampaigns)
+      );
+
+      window.dispatchEvent(
+        new StorageEvent("storage", {
+          key: HARVESTS_STORAGE_KEY,
+          newValue: JSON.stringify(updatedCampaigns),
+        })
+      );
+
+      setHarvestInvestments((prev) => ({
+        ...prev,
+        [harvestId]: "",
+      }));
+
+      alert(
+        txHash
+          ? `Investment successful. Tx: ${txHash}`
+          : "Investment recorded successfully. Campaign funding has been updated."
+      );
+    } catch (error) {
+      console.error(error);
+      const message =
+        error instanceof Error ? error.message : "Investment failed.";
+      alert(message);
     }
-
-    if (!ethers.isAddress(recipient)) {
-      alert("Invalid farmer wallet address.");
-      return;
-    }
-
-    const provider = new ethers.BrowserProvider(window.ethereum);
-    const signer = await provider.getSigner();
-    const sender = await signer.getAddress();
-
-    let txHash = "";
-
-    if (sender.toLowerCase() !== recipient.toLowerCase()) {
-      const tx = await signer.sendTransaction({
-        to: recipient,
-        value: ethers.parseEther("0.000001"),
-      });
-
-      await tx.wait();
-      txHash = tx.hash;
-    } else {
-      console.log("Demo mode: sender and recipient are the same, skipping on-chain transfer.");
-    }
-
-    const result = investInHarvest(harvestId, amount);
-
-    setHarvestCampaigns((prev) =>
-      prev.map((item) => (item.id === harvestId ? result.campaign : item))
-    );
-
-    setHarvestInvestments((prev) => ({
-      ...prev,
-      [harvestId]: "",
-    }));
-
-    alert(
-      txHash
-        ? `Investment successful. Tx: ${txHash}`
-        : "Investment recorded successfully. Campaign funding has been updated."
-    );
-  } catch (error) {
-    console.error(error);
-    const message =
-      error instanceof Error ? error.message : "Investment failed.";
-    alert(message);
-  }
-};
+  };
 
   return (
     <div className="min-h-screen flex flex-col bg-[#F6EEDC] text-[#3B2817]">

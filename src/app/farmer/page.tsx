@@ -146,6 +146,9 @@ type HarvestCampaign = {
   createdAt: string;
   verified?: boolean;
 
+  linkedProductId?: string;
+  listingCreatedAt?: string;
+
   actualYieldKg?: number;
   actualSellPricePerKg?: number;
   actualProductionCost?: number;
@@ -155,7 +158,6 @@ type HarvestCampaign = {
   farmerProfit?: number;
   settledAt?: string;
 };
-
 type ActiveSection =
   | "create"
   | "harvests"
@@ -224,6 +226,97 @@ export default function FarmerDashboard() {
     minimumInvestment: "500",
   });
 
+  const createProductFromCampaign = () => {
+  if (!harvestingCampaign) return;
+
+  const campaign = harvestingCampaign;
+  const actualYieldKg = Number(settlementForm.actualYieldKg);
+  const actualSellPricePerKg = Number(settlementForm.actualSellPricePerKg);
+  const actualProductionCost = Number(settlementForm.actualProductionCost);
+
+  if (actualYieldKg <= 0 || actualSellPricePerKg <= 0 || actualProductionCost <= 0) {
+    toast({
+      title: "Invalid harvest values",
+      description: "Enter a valid harvested quantity, selling price, and production cost.",
+      variant: "destructive",
+    });
+    return;
+  }
+
+  if (campaign.linkedProductId) {
+    toast({
+      title: "Listing already created",
+      description: "This campaign already has a linked harvest listing.",
+      variant: "destructive",
+    });
+    return;
+  }
+
+  const newProduct: Product = {
+    id: crypto.randomUUID(),
+    name: `${campaign.title} Harvest`,
+    price: actualSellPricePerKg,
+    originalPrice: actualSellPricePerKg,
+    quantity: actualYieldKg,
+    availableQuantity: actualYieldKg,
+    sold: 0,
+    reservedQuantity: 0,
+    location: campaign.location,
+    harvestDate: new Date().toISOString().split("T")[0],
+    rating: 0,
+    reviews: 0,
+    imageUrl: campaign.coverImage || "https://picsum.photos/seed/rice-harvest/400/300",
+    images: campaign.coverImage ? [campaign.coverImage] : [],
+    isPooled: actualYieldKg >= 100,
+    category: "polished",
+    farmer: campaign.farmerName,
+    farmerName: campaign.farmerName,
+    farmerId: campaign.farmerId,
+    farmerWallet: campaign.farmerWallet,
+    farmerRating: 5,
+    description:
+      campaign.description || `Harvest from funded campaign: ${campaign.title}`,
+    paymentMethod: "wallet",
+    payoutStatus: "not_paid",
+    blockchainNetwork: "Base",
+    status: "active",
+    createdAt: new Date().toISOString(),
+  };
+
+  saveProduct(newProduct);
+
+  updateHarvestCampaign(campaign.id, {
+    status: "harvested",
+    actualYieldKg,
+    actualSellPricePerKg,
+    actualProductionCost,
+    linkedProductId: newProduct.id,
+    listingCreatedAt: new Date().toISOString(),
+  });
+
+  setHarvestingCampaign(null);
+
+  toast({
+    title: "Harvest listed",
+    description: "The harvested crop is now available in the marketplace.",
+  });
+};
+
+  const [harvestingCampaign, setHarvestingCampaign] = useState<HarvestCampaign | null>(null);
+
+  const openHarvestModal = (campaign: HarvestCampaign) => {
+    setHarvestingCampaign(campaign);
+    setSettlementForm({
+      actualYieldKg: String(campaign.actualYieldKg ?? campaign.estimatedYieldKg ?? ""),
+      actualSellPricePerKg: String(
+        campaign.actualSellPricePerKg ?? campaign.targetSellPricePerKg ?? ""
+      ),
+      actualProductionCost: String(
+        campaign.actualProductionCost ?? campaign.estimatedProductionCost ?? ""
+      ),
+    });
+  };
+
   const [images, setImages] = useState<File[]>([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
@@ -270,49 +363,62 @@ export default function FarmerDashboard() {
 
   const handleSettleCampaign = () => {
     if (!settlingCampaign) return;
-
-    const actualYieldKg = Number(settlementForm.actualYieldKg);
-    const actualSellPricePerKg = Number(settlementForm.actualSellPricePerKg);
-    const actualProductionCost = Number(settlementForm.actualProductionCost);
-
-    if (
-      actualYieldKg <= 0 ||
-      actualSellPricePerKg <= 0 ||
-      actualProductionCost <= 0
-    ) {
+    if (!settlingCampaign.linkedProductId) {
       toast({
-        title: "Invalid settlement values",
-        description: "Please enter valid actual yield, sell price, and production cost.",
+        title: "No linked product",
+        description: "This campaign has no harvest listing yet.",
         variant: "destructive",
       });
       return;
     }
 
-    const totalRevenue = actualYieldKg * actualSellPricePerKg;
+    const actualProductionCost = Number(settlementForm.actualProductionCost);
+
+    if (actualProductionCost <= 0) {
+      toast({
+        title: "Invalid production cost",
+        description: "Please enter a valid actual production cost.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const relatedOrders = getOrders().filter(
+      (order) =>
+        order.productId === settlingCampaign.linkedProductId &&
+        ["paid", "accepted", "in_transit", "delivered", "completed"].includes(
+          order.orderStatus || ""
+        )
+    );
+
+    const totalRevenue = relatedOrders.reduce(
+      (sum, order) => sum + Number(order.totalAmount || 0),
+      0
+    );
+
+    const totalSoldKg = relatedOrders.reduce(
+      (sum, order) => sum + Number(order.quantity || 0),
+      0
+    );
+
     const netProfit = Math.max(totalRevenue - actualProductionCost, 0);
     const investorProfitPool =
       netProfit * (settlingCampaign.profitShareInvestors / 100);
     const farmerProfit =
       netProfit * (settlingCampaign.profitShareFarmer / 100);
 
-    const campaign = settlingCampaign;
-
-    // distribute to investors
-    campaign.investors.forEach((investor) => {
-      const shareRatio = investor.amount / campaign.fundingGoal;
-
+    settlingCampaign.investors.forEach((investor) => {
+      const shareRatio = investor.amount / settlingCampaign.fundingGoal;
       const profitShare = investorProfitPool * shareRatio;
       const totalPayout = investor.amount + profitShare;
 
       updateWalletBalance(investor.userId, totalPayout);
     });
 
-    // give farmer profit
-    updateWalletBalance(campaign.farmerId, farmerProfit);
+    updateWalletBalance(settlingCampaign.farmerId, farmerProfit);
 
     updateHarvestCampaign(settlingCampaign.id, {
-      actualYieldKg,
-      actualSellPricePerKg,
+      actualYieldKg: totalSoldKg,
       actualProductionCost,
       totalRevenue,
       netProfit,
@@ -326,7 +432,7 @@ export default function FarmerDashboard() {
 
     toast({
       title: "Campaign settled",
-      description: "Final sale and profit-sharing summary have been recorded.",
+      description: "Settlement was based on actual marketplace sales.",
     });
   };
 
@@ -2424,22 +2530,16 @@ export default function FarmerDashboard() {
                                   </Button>
                                 )}
 
-                                {campaign.status === "growing" && (
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => {
-                                      updateHarvestCampaign(campaign.id, { status: "harvested" });
-                                      toast({
-                                        title: "Campaign updated",
-                                        description: "Campaign marked as harvested.",
-                                      });
-                                    }}
-                                  >
-                                    <Archive className="h-4 w-4 mr-2" />
-                                    Mark Harvested
-                                  </Button>
-                                )}
+                                {campaign.status === "growing" && !campaign.linkedProductId && (
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => openHarvestModal(campaign)}
+                                    >
+                                      <Archive className="h-4 w-4 mr-2" />
+                                      Harvest & List
+                                    </Button>
+                                  )}
 
                                 {campaign.status === "harvested" && (
                                   <Button
@@ -3031,6 +3131,85 @@ export default function FarmerDashboard() {
           </div>
         </div>
       )}
+
+      {harvestingCampaign && (
+      <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center px-4">
+        <div className="w-full max-w-lg rounded-[28px] bg-white border-[3px] border-[#C89D57] shadow-xl">
+          <div className="flex items-center justify-between px-6 py-4 border-b">
+            <div>
+              <h3 className="font-semibold text-lg">Harvest & List Campaign</h3>
+              <p className="text-sm text-muted-foreground">
+                Convert this funded campaign into a real marketplace product.
+              </p>
+            </div>
+            <Button variant="ghost" size="icon" onClick={() => setHarvestingCampaign(null)}>
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+
+          <div className="p-6 space-y-4">
+            <div className="rounded-2xl bg-[#FFF8E8] border border-[#E8D7B5] px-4 py-3">
+              <p className="font-medium">{harvestingCampaign.title}</p>
+              <p className="text-sm text-muted-foreground mt-1">
+                {harvestingCampaign.location} • {harvestingCampaign.cropType}
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Actual Harvested Yield (kg)</Label>
+                <Input
+                  type="number"
+                  value={settlementForm.actualYieldKg}
+                  onChange={(e) =>
+                    setSettlementForm({
+                      ...settlementForm,
+                      actualYieldKg: e.target.value,
+                    })
+                  }
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Listing Price (₱/kg)</Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  value={settlementForm.actualSellPricePerKg}
+                  onChange={(e) =>
+                    setSettlementForm({
+                      ...settlementForm,
+                      actualSellPricePerKg: e.target.value,
+                    })
+                  }
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Actual Production Cost (₱)</Label>
+              <Input
+                type="number"
+                value={settlementForm.actualProductionCost}
+                onChange={(e) =>
+                  setSettlementForm({
+                    ...settlementForm,
+                    actualProductionCost: e.target.value,
+                  })
+                }
+              />
+            </div>
+          </div>
+
+          <div className="px-6 py-4 border-t flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setHarvestingCampaign(null)}>
+              Cancel
+            </Button>
+            <Button onClick={createProductFromCampaign}>Create Listing</Button>
+          </div>
+        </div>
+      </div>
+    )}
 
       {settlingCampaign && (
       <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center px-4">
