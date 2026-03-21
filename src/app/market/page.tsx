@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Navbar } from "@/components/layout/Navbar";
 import { ProductCard } from "@/components/marketplace/ProductCard";
 import { Input } from "@/components/ui/input";
@@ -12,10 +12,42 @@ import {
   Package,
   X,
   ShieldCheck,
-  Sprout,
   MapPin,
   Store,
 } from "lucide-react";
+
+const PRODUCTS_STORAGE_KEY = "sibol_products";
+
+type Product = {
+  id: string;
+  name: string;
+  price: number;
+  originalPrice?: number;
+  quantity: number;
+  availableQuantity?: number;
+  sold?: number;
+  reservedQuantity?: number;
+  location: string;
+  harvestDate: string;
+  rating?: number;
+  reviews?: number;
+  imageUrl: string;
+  images?: string[];
+  isPooled?: boolean;
+  category?: string;
+  verified?: boolean;
+  farmer?: string;
+  farmerName?: string;
+  farmerId?: string;
+  farmerWallet?: string;
+  farmerRating?: number;
+  description?: string;
+  paymentMethod?: string;
+  payoutStatus?: string;
+  blockchainNetwork?: string;
+  status?: string;
+  createdAt?: string;
+};
 
 const riceImageCollection = {
   polished: [
@@ -43,12 +75,71 @@ function getImageByCategory(category: string, index: number) {
   return images[index % images.length];
 }
 
-const SAMPLE_PRODUCTS = [
+function normalizeCategory(category?: string) {
+  if (!category) return "polished";
+
+  if (["polished", "unpolished", "seeds"].includes(category)) {
+    return category;
+  }
+
+  if (category === "premium" || category === "value") {
+    return "polished";
+  }
+
+  return "polished";
+}
+
+function normalizeProduct(product: Partial<Product>, index: number): Product {
+  const normalizedCategory = normalizeCategory(product.category);
+  const availableQty =
+    typeof product.availableQuantity === "number"
+      ? product.availableQuantity
+      : Number(product.quantity || 0);
+
+  return {
+    id: String(product.id || Date.now() + index),
+    name: product.name || "Unnamed Product",
+    price: Number(product.price || 0),
+    originalPrice: product.originalPrice,
+    quantity: Number(product.quantity || 0),
+    availableQuantity: availableQty,
+    sold: Number(product.sold || 0),
+    reservedQuantity: Number(product.reservedQuantity || 0),
+    location: product.location || "Unknown location",
+    harvestDate: product.harvestDate || "No date",
+    rating: Number(product.rating ?? 4.5),
+    reviews: Number(product.reviews ?? 0),
+    imageUrl:
+      product.imageUrl ||
+      getImageByCategory(normalizedCategory, index),
+    images: product.images || [],
+    isPooled:
+      typeof product.isPooled === "boolean"
+        ? product.isPooled
+        : availableQty >= 100,
+    category: normalizedCategory,
+    verified: typeof product.verified === "boolean" ? product.verified : true,
+    farmer: product.farmer,
+    farmerName: product.farmerName,
+    farmerId: product.farmerId,
+    farmerWallet: product.farmerWallet,
+    farmerRating: product.farmerRating,
+    description: product.description,
+    paymentMethod: product.paymentMethod,
+    payoutStatus: product.payoutStatus,
+    blockchainNetwork: product.blockchainNetwork,
+    status: product.status || "active",
+    createdAt: product.createdAt,
+  };
+}
+
+const SAMPLE_PRODUCTS: Product[] = [
   {
     id: "1",
     name: "Dinorado Rice Premium",
     price: 38,
     quantity: 500,
+    availableQuantity: 500,
     location: "Bayan, Nueva Ecija",
     harvestDate: "Feb 2026",
     rating: 4.8,
@@ -56,12 +147,15 @@ const SAMPLE_PRODUCTS = [
     isPooled: true,
     category: "polished",
     verified: true,
+    status: "active",
+    createdAt: "2026-02-10T00:00:00.000Z",
   },
   {
     id: "2",
     name: "Jasmine White Rice",
     price: 42,
     quantity: 1200,
+    availableQuantity: 1200,
     location: "Isabela",
     harvestDate: "Jan 2026",
     rating: 4.5,
@@ -69,12 +163,15 @@ const SAMPLE_PRODUCTS = [
     isPooled: false,
     category: "polished",
     verified: true,
+    status: "active",
+    createdAt: "2026-01-15T00:00:00.000Z",
   },
   {
     id: "3",
     name: "Angelica Special Variety",
     price: 36,
     quantity: 250,
+    availableQuantity: 250,
     location: "Tarlac",
     harvestDate: "Mar 2026",
     rating: 4.9,
@@ -82,12 +179,15 @@ const SAMPLE_PRODUCTS = [
     isPooled: true,
     category: "seeds",
     verified: false,
+    status: "active",
+    createdAt: "2026-03-01T00:00:00.000Z",
   },
   {
     id: "4",
     name: "Organic Brown Rice",
     price: 55,
     quantity: 100,
+    availableQuantity: 100,
     location: "Benguet",
     harvestDate: "Dec 2025",
     rating: 4.7,
@@ -95,21 +195,23 @@ const SAMPLE_PRODUCTS = [
     isPooled: false,
     category: "unpolished",
     verified: true,
+    status: "active",
+    createdAt: "2025-12-20T00:00:00.000Z",
   },
 ];
 
 const CATEGORY_OPTIONS = [
-  { label: "Lahat ng Uri", value: "all" },
+  { label: "All Types", value: "all" },
   { label: "Polished Rice", value: "polished" },
   { label: "Unpolished Rice", value: "unpolished" },
   { label: "Seeds & Seedlings", value: "seeds" },
 ];
 
 const PRICE_OPTIONS = [
-  { label: "Lahat ng Presyo", value: "all" },
-  { label: "Mas mababa sa ₱40", value: "under40" },
+  { label: "All Prices", value: "all" },
+  { label: "Below ₱40", value: "under40" },
   { label: "₱40–₱50", value: "40to50" },
-  { label: "Higit sa ₱50", value: "above50" },
+  { label: "Above ₱50", value: "above50" },
 ];
 
 function WoodSign({
@@ -143,14 +245,68 @@ export default function MarketplacePage() {
   const [category, setCategory] = useState("all");
   const [priceRange, setPriceRange] = useState("all");
   const [sortBy, setSortBy] = useState("latest");
+  const [marketplaceProducts, setMarketplaceProducts] = useState<Product[]>([]);
+
+  useEffect(() => {
+    const loadProducts = () => {
+      const localProductsRaw =
+        typeof window !== "undefined"
+          ? localStorage.getItem(PRODUCTS_STORAGE_KEY)
+          : null;
+
+      let localProducts: Product[] = [];
+
+      try {
+        const parsed = localProductsRaw ? JSON.parse(localProductsRaw) : [];
+        localProducts = Array.isArray(parsed)
+          ? parsed.map((product, index) => normalizeProduct(product, index))
+          : [];
+      } catch {
+        localProducts = [];
+      }
+
+      const sampleProductsNormalized = SAMPLE_PRODUCTS.map((product, index) =>
+        normalizeProduct(product, index)
+      );
+
+      const mergedProducts = [...localProducts, ...sampleProductsNormalized];
+
+      setMarketplaceProducts(mergedProducts);
+    };
+
+    loadProducts();
+
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === PRODUCTS_STORAGE_KEY) {
+        loadProducts();
+      }
+    };
+
+    window.addEventListener("storage", handleStorage);
+
+    return () => {
+      window.removeEventListener("storage", handleStorage);
+    };
+  }, []);
 
   const filteredProducts = useMemo(() => {
-    let products = [...SAMPLE_PRODUCTS];
+    let products = [...marketplaceProducts];
 
     products = products.filter((product) => {
+      const availableQty =
+        typeof product.availableQuantity === "number"
+          ? product.availableQuantity
+          : product.quantity;
+
+      const isVisible = product.status !== "paused" && product.status !== "sold_out";
+      const hasStock = availableQty > 0;
+
       const matchesSearch =
         product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        product.location.toLowerCase().includes(searchTerm.toLowerCase());
+        product.location.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (product.farmerName || product.farmer || "")
+          .toLowerCase()
+          .includes(searchTerm.toLowerCase());
 
       const matchesTab =
         activeTab === "all" ||
@@ -166,7 +322,14 @@ export default function MarketplacePage() {
         (priceRange === "40to50" && product.price >= 40 && product.price <= 50) ||
         (priceRange === "above50" && product.price > 50);
 
-      return matchesSearch && matchesTab && matchesCategory && matchesPrice;
+      return (
+        isVisible &&
+        hasStock &&
+        matchesSearch &&
+        matchesTab &&
+        matchesCategory &&
+        matchesPrice
+      );
     });
 
     switch (sortBy) {
@@ -177,17 +340,27 @@ export default function MarketplacePage() {
         products.sort((a, b) => b.price - a.price);
         break;
       case "rating":
-        products.sort((a, b) => b.rating - a.rating);
+        products.sort((a, b) => (b.rating || 0) - (a.rating || 0));
         break;
       case "quantity":
-        products.sort((a, b) => b.quantity - a.quantity);
+        products.sort(
+          (a, b) =>
+            (b.availableQuantity ?? b.quantity ?? 0) -
+            (a.availableQuantity ?? a.quantity ?? 0)
+        );
         break;
+      case "latest":
       default:
+        products.sort((a, b) => {
+          const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+          const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+          return bTime - aTime;
+        });
         break;
     }
 
     return products;
-  }, [searchTerm, activeTab, category, priceRange, sortBy]);
+  }, [marketplaceProducts, searchTerm, activeTab, category, priceRange, sortBy]);
 
   const hasActiveFilters =
     searchTerm || activeTab !== "all" || category !== "all" || priceRange !== "all";
@@ -213,12 +386,12 @@ export default function MarketplacePage() {
 
             <div className="space-y-3">
               <h1 className="text-3xl font-black tracking-tight sm:text-4xl lg:text-5xl text-[#2F1F10]">
-                Direktang bili mula sa kooperatiba at magsasaka
+                Direct buying from cooperatives and farmers
               </h1>
 
               <p className="max-w-2xl text-[#694F33] text-sm sm:text-base leading-relaxed">
-                Mamili ng bigas at iba pang produktong agrikultural na may malinaw
-                na presyo, pinagmulan, at mas direktang bentahan mula bukid hanggang buyer.
+                Browse rice and other agricultural products with clearer pricing,
+                visible origin, and a more direct farm-to-buyer flow.
               </p>
             </div>
 
@@ -230,12 +403,12 @@ export default function MarketplacePage() {
 
               <div className="inline-flex items-center gap-2 rounded-full border border-[#E5C97B] bg-[#FFF0BF] px-3 py-2 font-medium text-[#7A5618] shadow-sm">
                 <MapPin className="h-4 w-4" />
-                Kita ang pinagmulan
+                Visible source location
               </div>
 
               <div className="inline-flex items-center gap-2 rounded-full border border-[#D8C7A0] bg-[#FFF8E7] px-3 py-2 font-medium text-[#694F33] shadow-sm">
                 <Store className="h-4 w-4" />
-                Direkta at pinagsamang order
+                Direct and pooled orders
               </div>
             </div>
           </div>
@@ -248,7 +421,7 @@ export default function MarketplacePage() {
             <div className="flex items-center justify-between flex-wrap gap-3">
               <div className="inline-flex items-center gap-2 rounded-full bg-[#FFF0BF] px-3 py-1 text-[11px] font-black uppercase tracking-wide text-[#7A5618]">
                 <SlidersHorizontal className="h-3.5 w-3.5" />
-                Salain ang Paninda
+                Filter Listings
               </div>
 
               <div className="rounded-full border border-[#D7C29B] bg-[#FFFCF3] px-3 py-1 text-sm text-[#694F33]">
@@ -261,7 +434,7 @@ export default function MarketplacePage() {
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8B6A45]" />
                 <Input
-                  placeholder="Hanapin ang produkto o lokasyon..."
+                  placeholder="Search product, location, or farmer..."
                   className="pl-10 h-11 border-[#D7C29B] bg-[#FFFCF3] text-[#3B2817] placeholder:text-[#8B6A45]"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
@@ -298,11 +471,11 @@ export default function MarketplacePage() {
                   onChange={(e) => setSortBy(e.target.value)}
                   className="h-11 rounded-xl border-2 border-[#D7C29B] bg-[#FFFCF3] px-3 text-sm text-[#3B2817]"
                 >
-                  <option value="latest">Pinakabago</option>
-                  <option value="priceAsc">Pinakamurang Presyo</option>
-                  <option value="priceDesc">Pinakamataas na Presyo</option>
-                  <option value="rating">Pinakamataas ang Rating</option>
-                  <option value="quantity">Pinakamaraming Stock</option>
+                  <option value="latest">Latest</option>
+                  <option value="priceAsc">Lowest Price</option>
+                  <option value="priceDesc">Highest Price</option>
+                  <option value="rating">Highest Rating</option>
+                  <option value="quantity">Most Stock</option>
                 </select>
               </div>
             </div>
@@ -311,19 +484,19 @@ export default function MarketplacePage() {
               <Tabs value={activeTab} onValueChange={setActiveTab} className="w-auto">
                 <TabsList className="bg-[#F1E6CF] border border-[#D7C29B] p-1 rounded-2xl">
                   <TabsTrigger value="all" className="rounded-xl data-[state=active]:bg-[#FFF8E7] data-[state=active]:text-[#2E6C3C]">
-                    Lahat
+                    All
                   </TabsTrigger>
                   <TabsTrigger value="pooled" className="rounded-xl data-[state=active]:bg-[#FFF8E7] data-[state=active]:text-[#2E6C3C]">
-                    Pinagsama
+                    Pooled
                   </TabsTrigger>
                   <TabsTrigger value="direct" className="rounded-xl data-[state=active]:bg-[#FFF8E7] data-[state=active]:text-[#2E6C3C]">
-                    Direkta
+                    Direct
                   </TabsTrigger>
                 </TabsList>
               </Tabs>
 
               <div className="text-sm text-[#694F33]">
-                Pumili batay sa uri, presyo, at paraan ng order
+                Choose by type, price, and order method
               </div>
             </div>
 
@@ -378,7 +551,7 @@ export default function MarketplacePage() {
                     )}
                     {product.isPooled && (
                       <span className="inline-flex items-center rounded-full border border-[#E9CB84] bg-[#FFF4D3] px-2.5 py-1 text-xs font-medium text-[#7A5618]">
-                        Pinagsamang Order
+                        Pooled Order
                       </span>
                     )}
                   </div>
@@ -390,9 +563,9 @@ export default function MarketplacePage() {
               <div className="mb-4 rounded-full bg-[#F1E6CF] p-4">
                 <Package className="h-10 w-10 text-[#8B6A45]" />
               </div>
-              <h3 className="text-xl font-black text-[#2F1F10]">Walang nahanap na produkto</h3>
+              <h3 className="text-xl font-black text-[#2F1F10]">No products found</h3>
               <p className="mt-2 max-w-md text-sm text-[#694F33]">
-                Subukang baguhin ang search, category, price range, o listing type.
+                Try changing the search, category, price range, or listing type.
               </p>
               <Button
                 variant="outline"

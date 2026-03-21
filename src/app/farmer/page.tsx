@@ -149,6 +149,7 @@ export default function FarmerDashboard() {
     location: "Nueva Ecija",
     description: "",
     harvestDate: new Date().toISOString().split("T")[0],
+    category: "polished",
   });
 
   const [images, setImages] = useState<File[]>([]);
@@ -170,6 +171,7 @@ export default function FarmerDashboard() {
     location: "",
     description: "",
     harvestDate: "",
+    category: "polished",
   });
 
   const farmerName = user?.name || "Local Farmer";
@@ -405,6 +407,7 @@ export default function FarmerDashboard() {
       location: "Nueva Ecija",
       description: "",
       harvestDate: new Date().toISOString().split("T")[0],
+      category: "polished",
     });
     setImages([]);
     setImagePreviews([]);
@@ -474,7 +477,7 @@ export default function FarmerDashboard() {
       imageUrl: imagePreviews[0] || "https://picsum.photos/seed/rice-new/400/300",
       images: imagePreviews,
       isPooled: parsedQuantity >= 100,
-      category: parsedQuantity >= 500 ? "premium" : "value",
+      category: formData.category,
       farmer: farmerName,
       farmerName,
       farmerId: user?.id || user?.email || farmerName,
@@ -748,6 +751,7 @@ export default function FarmerDashboard() {
       location: product.location || "",
       description: product.description || "",
       harvestDate: product.harvestDate || "",
+      category: product.category || "polished",
     });
   };
 
@@ -778,6 +782,7 @@ export default function FarmerDashboard() {
       location: editForm.location.trim(),
       description: editForm.description.trim(),
       harvestDate: editForm.harvestDate,
+      category: editForm.category,
       status: nextStatus,
     });
 
@@ -1215,6 +1220,22 @@ export default function FarmerDashboard() {
                               />
                             </div>
                           </div>
+
+                          <div className="space-y-2">
+                          <Label htmlFor="category">Category *</Label>
+                          <select
+                            id="category"
+                            value={formData.category}
+                            onChange={(e) =>
+                              setFormData({ ...formData, category: e.target.value })
+                            }
+                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                          >
+                            <option value="polished">Polished Rice</option>
+                            <option value="unpolished">Unpolished Rice</option>
+                            <option value="seeds">Seeds & Seedlings</option>
+                          </select>
+                        </div>
 
                           <div className="space-y-2">
                             <Label htmlFor="description">Description</Label>
@@ -1878,6 +1899,21 @@ export default function FarmerDashboard() {
                   value={editForm.harvestDate}
                   onChange={(e) => setEditForm({ ...editForm, harvestDate: e.target.value })}
                 />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Category</Label>
+                <select
+                  value={editForm.category}
+                  onChange={(e) =>
+                    setEditForm({ ...editForm, category: e.target.value })
+                  }
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                >
+                  <option value="polished">Polished Rice</option>
+                  <option value="unpolished">Unpolished Rice</option>
+                  <option value="seeds">Seeds & Seedlings</option>
+                </select>
               </div>
 
               <div className="space-y-2">
