@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { Navbar } from "@/components/layout/Navbar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -25,10 +25,40 @@ import {
   Sparkles,
 } from "lucide-react";
 import Image from "next/image";
-import { useToast } from "@/hooks/use-toast";
 import { useParams, useRouter } from "next/navigation";
 
 const CHECKOUT_PRODUCT_KEY = "sibol_checkout_product";
+const PRODUCTS_STORAGE_KEY = "sibol_products";
+
+type Product = {
+  id: string;
+  name: string;
+  price: number;
+  originalPrice?: number;
+  quantity: number;
+  availableQuantity?: number;
+  sold?: number;
+  reservedQuantity?: number;
+  location: string;
+  harvestDate: string;
+  rating?: number;
+  reviews?: number;
+  imageUrl: string;
+  images?: string[];
+  isPooled?: boolean;
+  category?: string;
+  farmer?: string;
+  farmerName?: string;
+  farmerId?: string;
+  farmerWallet?: string;
+  farmerRating?: number;
+  description?: string;
+  paymentMethod?: string;
+  payoutStatus?: string;
+  blockchainNetwork?: string;
+  status?: string;
+  createdAt?: string;
+};
 
 function WoodSign({
   children,
@@ -83,66 +113,78 @@ function getGalleryByCategory(category: string) {
   return images.slice(0, 4);
 }
 
-
 export default function ProductDetailPage() {
- 
-  const [purchaseType, setPurchaseType] = useState<"individual" | "pooled">(
-    "individual"
-  );
-  
+  const [purchaseType, setPurchaseType] = useState<"individual" | "pooled">("individual");
   const [quantity, setQuantity] = useState(10);
   const [selectedImage, setSelectedImage] = useState(0);
+  const [product, setProduct] = useState<Product | null>(null);
+
   const router = useRouter();
   const routeParams = useParams<{ id: string }>();
   const productId = routeParams.id;
-  
 
-  const handlePurchase = () => {
-    const checkoutProduct = {
-      ...product,
-      selectedQuantity: quantity,
-      selectedOrderType: purchaseType,
-    };
+  useEffect(() => {
+    if (typeof window === "undefined") return;
 
-    localStorage.setItem(CHECKOUT_PRODUCT_KEY, JSON.stringify(checkoutProduct));
+    const stored = localStorage.getItem(PRODUCTS_STORAGE_KEY);
+    const allProducts: Product[] = stored ? JSON.parse(stored) : [];
+    const matchedProduct =
+      allProducts.find((item) => item.id === productId) || null;
 
-    router.push("/checkout");
+    setProduct(matchedProduct);
+  }, [productId]);
+
+  useEffect(() => {
+    setSelectedImage(0);
+    setQuantity(10);
+  }, [productId]);
+
+  const productCategory = product?.category || "polished";
+
+  const productGallery =
+    product?.images && product.images.length > 0
+      ? product.images.slice(0, 4)
+      : product?.imageUrl
+      ? [product.imageUrl, ...getGalleryByCategory(productCategory).slice(0, 3)]
+      : getGalleryByCategory(productCategory);
+
+  const normalizedProduct = product
+    ? {
+        ...product,
+        marketPrice: Number(product.originalPrice ?? product.price + 5),
+        availableQuantity: Number(product.availableQuantity ?? product.quantity ?? 0),
+        minPooled: Math.max(1000, Number(product.quantity ?? 0)),
+        currentPooled: Number(product.reservedQuantity ?? 0),
+        buyersJoined: Math.max(
+          1,
+          Math.ceil(Number(product.reservedQuantity ?? 0) / 50)
+        ),
+        rating: Number(product.rating ?? 4.8),
+        reviews: Number(product.reviews ?? 0),
+        farmer: product.farmerName || product.farmer || "Local Farmer",
+        description:
+          product.description ||
+          "Freshly harvested rice directly from local farmers.",
+        gallery: productGallery,
+      }
+    : null;
+
+    const handlePurchase = () => {
+  if (!normalizedProduct) return;
+
+  const checkoutProduct = {
+    ...normalizedProduct,
+    selectedQuantity: quantity,
+    selectedOrderType: purchaseType,
   };
 
-  const productCategory = "polished";
+  localStorage.setItem(
+    CHECKOUT_PRODUCT_KEY,
+    JSON.stringify(checkoutProduct)
+  );
 
-  const product = {
-    name: "Dinorado Rice Premium Grade A",
-    price: 38,
-    marketPrice: 45,
-    quantity: 500,
-    minPooled: 1000,
-    currentPooled: 650,
-    buyersJoined: 8,
-    location: "Gapan City, Nueva Ecija",
-    harvestDate: "Feb 12, 2026",
-    rating: 4.8,
-    reviews: 24,
-    category: productCategory,
-    description:
-      "Mabango, malambot, at bahagyang malagkit kapag naluto. Direktang inani mula sa mga bukirin ng Nueva Ecija at maingat na minill upang mapanatili ang kalidad at natural na sustansya.",
-    farmer: "Nueva Ecija Rice Producers Cooperative",
-    gallery: getGalleryByCategory(productCategory),
-  };
-
-  const shippingPerKg = 2.5;
-  const subtotal = quantity * product.price;
-  const shippingTotal = quantity * shippingPerKg;
-  const total = subtotal + shippingTotal;
-  const savingsPerKg = product.marketPrice - product.price;
-  const totalSavings = quantity * savingsPerKg;
-  const pooledProgress = (product.currentPooled / product.minPooled) * 100;
-  const pooledRemaining = product.minPooled - product.currentPooled;
-  const pooledPrice = product.price - 2;
-
-  const decreaseQty = () => setQuantity((prev) => Math.max(10, prev - 5));
-  const increaseQty = () =>
-    setQuantity((prev) => Math.min(product.quantity, prev + 5));
+  router.push("/checkout");
+};
 
   const highlights = useMemo(
     () => [
@@ -166,6 +208,27 @@ export default function ProductDetailPage() {
     []
   );
 
+  if (!normalizedProduct) {
+    return (
+      <div className="min-h-screen bg-[#F6EEDC] text-[#3C2A18]">
+        <Navbar />
+        <main className="container mx-auto px-4 py-12">
+          <div className="rounded-[28px] border-[3px] border-[#C89D57] bg-white p-10 text-center shadow-md">
+            <h1 className="text-2xl font-bold">Product not found</h1>
+            <p className="mt-2 text-muted-foreground">
+              This product may have been deleted or is not available in local storage.
+            </p>
+            <Button className="mt-4" onClick={() => router.push("/market")}>
+              Back to Marketplace
+            </Button>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  
+
   const reviews = [
     {
       name: "Sari-Sari Store Juan",
@@ -181,6 +244,33 @@ export default function ProductDetailPage() {
     },
   ];
 
+  
+
+  const shippingPerKg = 2.5;
+  const subtotal = quantity * normalizedProduct.price;
+  const shippingTotal = quantity * shippingPerKg;
+  const total = subtotal + shippingTotal;
+  const savingsPerKg =
+    normalizedProduct.marketPrice - normalizedProduct.price;
+  const totalSavings = quantity * savingsPerKg;
+  const pooledProgress =
+    normalizedProduct.minPooled > 0
+      ? (normalizedProduct.currentPooled / normalizedProduct.minPooled) * 100
+      : 0;
+  const pooledRemaining = Math.max(
+    normalizedProduct.minPooled - normalizedProduct.currentPooled,
+    0
+  );
+  const pooledPrice = normalizedProduct.price - 2;
+
+  const decreaseQty = () => setQuantity((prev) => Math.max(10, prev - 5));
+  const increaseQty = () =>
+    setQuantity((prev) =>
+      Math.min(normalizedProduct.availableQuantity, prev + 5)
+    );
+
+
+  
   return (
     <div className="min-h-screen bg-[#F6EEDC] text-[#3C2A18]">
       <Navbar />
@@ -193,7 +283,6 @@ export default function ProductDetailPage() {
         </div>
 
         <div className="container mx-auto px-4 py-8 lg:py-10 relative">
-          {/* Hanging market header */}
           <div className="mb-8 flex justify-center">
             <div className="relative inline-flex items-center gap-3 rounded-full border-2 border-[#B98B4A] bg-[#FFF4D1] px-6 py-3 shadow-md">
               <div className="absolute -top-4 left-6 h-4 w-0.5 bg-[#B98B4A]" />
@@ -206,9 +295,7 @@ export default function ProductDetailPage() {
           </div>
 
           <div className="grid lg:grid-cols-12 gap-10 xl:gap-14">
-            {/* LEFT */}
             <div className="lg:col-span-7 space-y-8">
-              {/* Hero media */}
               <div className="space-y-4">
                 <div className="relative overflow-hidden rounded-[28px] border-[3px] border-[#D1B07D] bg-[#FFF9EC] shadow-[0_18px_50px_rgba(92,62,27,0.14)]">
                   <div className="absolute left-4 top-4 z-20 flex flex-wrap gap-2">
@@ -225,8 +312,8 @@ export default function ProductDetailPage() {
 
                   <div className="relative aspect-[4/3]">
                     <Image
-                      src={product.gallery[selectedImage]}
-                      alt={product.name}
+                      src={normalizedProduct.gallery[selectedImage]}
+                      alt={normalizedProduct.name}
                       fill
                       className="object-cover transition-transform duration-500 hover:scale-105"
                     />
@@ -237,14 +324,15 @@ export default function ProductDetailPage() {
                     <div className="rounded-full border border-white/40 bg-white/90 px-3 py-2 text-sm font-bold text-[#3C2A18] shadow backdrop-blur">
                       <span className="inline-flex items-center gap-1.5">
                         <Star className="h-3.5 w-3.5 fill-[#E3A400] text-[#E3A400]" />
-                        {product.rating} • {product.reviews} review
+                        {normalizedProduct.rating} • {normalizedProduct.reviews}{" "}
+                        review
                       </span>
                     </div>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-4 gap-3">
-                  {product.gallery.map((img, index) => (
+                  {normalizedProduct.gallery.map((img, index) => (
                     <button
                       key={index}
                       onClick={() => setSelectedImage(index)}
@@ -265,7 +353,6 @@ export default function ProductDetailPage() {
                 </div>
               </div>
 
-              {/* Product title block */}
               <div className="rounded-[28px] border-[2px] border-[#D7C29B] bg-[#FFF9EC] p-6 shadow-sm">
                 <div className="flex flex-wrap gap-2 mb-4">
                   <Badge className="rounded-full border border-[#B8D6B3] bg-[#E9F6E5] text-[#2E6C3C] hover:bg-[#E9F6E5]">
@@ -284,13 +371,13 @@ export default function ProductDetailPage() {
                 </p>
 
                 <h1 className="mt-3 text-4xl lg:text-5xl font-black leading-tight tracking-tight text-[#2F1F10]">
-                  {product.name}
+                  {normalizedProduct.name}
                 </h1>
 
                 <p className="mt-4 max-w-3xl text-lg leading-relaxed text-[#694F33]">
-                  Bigas na may kalidad at presyong mas makatarungan, diretso mula
-                  sa lokal na kooperatiba para mas sariwa, mas malinaw, at mas
-                  mapagkakatiwalaan ang bawat order.
+                  Bigas na may kalidad at presyong mas makatarungan, diretso
+                  mula sa lokal na kooperatiba para mas sariwa, mas malinaw, at
+                  mas mapagkakatiwalaan ang bawat order.
                 </p>
 
                 <div className="mt-5 grid sm:grid-cols-3 gap-3">
@@ -300,7 +387,7 @@ export default function ProductDetailPage() {
                     </p>
                     <p className="mt-1 flex items-center gap-2 text-sm font-bold text-[#3C2A18]">
                       <MapPin className="h-4 w-4 text-[#2E6C3C]" />
-                      {product.location}
+                      {normalizedProduct.location}
                     </p>
                   </div>
 
@@ -310,7 +397,7 @@ export default function ProductDetailPage() {
                     </p>
                     <p className="mt-1 flex items-center gap-2 text-sm font-bold text-[#3C2A18]">
                       <Calendar className="h-4 w-4 text-[#2E6C3C]" />
-                      {product.harvestDate}
+                      {normalizedProduct.harvestDate}
                     </p>
                   </div>
 
@@ -326,17 +413,15 @@ export default function ProductDetailPage() {
                 </div>
               </div>
 
-              {/* Description note */}
               <div className="relative rounded-[26px] border-[2px] border-[#D7C29B] bg-[#FFF9EC] p-5 shadow-sm">
                 <div className="absolute -top-3 left-5 rotate-[-3deg] rounded-full bg-[#FFE7A3] px-3 py-1 text-[11px] font-black uppercase tracking-wide text-[#7A5618] shadow-sm">
                   Tungkol sa Bigas
                 </div>
                 <p className="pt-4 text-base leading-relaxed text-[#5E472F]">
-                  {product.description}
+                  {normalizedProduct.description}
                 </p>
               </div>
 
-              {/* Highlights */}
               <div className="grid sm:grid-cols-2 gap-4">
                 {highlights.map((item, i) => (
                   <Card
@@ -353,7 +438,9 @@ export default function ProductDetailPage() {
                           <Leaf className="h-5 w-5 text-[#2E6C3C]" />
                         </div>
                         <div>
-                          <p className="font-black text-[#2F1F10]">{item.title}</p>
+                          <p className="font-black text-[#2F1F10]">
+                            {item.title}
+                          </p>
                           <p className="mt-1 text-sm leading-relaxed text-[#694F33]">
                             {item.text}
                           </p>
@@ -364,7 +451,6 @@ export default function ProductDetailPage() {
                 ))}
               </div>
 
-              {/* Why Sibol */}
               <Card className="rounded-[28px] border-[2px] border-[#D7C29B] bg-gradient-to-r from-[#FFF3D0] to-[#F8F1E3] shadow-sm">
                 <CardContent className="p-6">
                   <div className="inline-flex items-center gap-2 rounded-full bg-[#FFF9EC] px-3 py-1 border border-[#E5C97B]">
@@ -380,19 +466,25 @@ export default function ProductDetailPage() {
 
                   <div className="mt-5 grid gap-5 sm:grid-cols-3">
                     <div>
-                      <p className="font-black text-[#2F1F10]">Mas patas sa magsasaka</p>
+                      <p className="font-black text-[#2F1F10]">
+                        Mas patas sa magsasaka
+                      </p>
                       <p className="mt-1 text-sm leading-relaxed text-[#694F33]">
                         Mas kaunti ang middlemen kaya mas may balik sa producer.
                       </p>
                     </div>
                     <div>
-                      <p className="font-black text-[#2F1F10]">Mas klaro ang presyo</p>
+                      <p className="font-black text-[#2F1F10]">
+                        Mas klaro ang presyo
+                      </p>
                       <p className="mt-1 text-sm leading-relaxed text-[#694F33]">
                         Kita ang presyo ng bigas, logistics, at posibleng tipid.
                       </p>
                     </div>
                     <div>
-                      <p className="font-black text-[#2F1F10]">Mas ligtas ang bayad</p>
+                      <p className="font-black text-[#2F1F10]">
+                        Mas ligtas ang bayad
+                      </p>
                       <p className="mt-1 text-sm leading-relaxed text-[#694F33]">
                         Naka-escrow ang pondo hanggang makumpirma ang delivery.
                       </p>
@@ -401,14 +493,13 @@ export default function ProductDetailPage() {
                 </CardContent>
               </Card>
 
-              {/* Reviews */}
               <div className="border-t-2 border-dashed border-[#D8C7A0] pt-8">
                 <div className="mb-6 flex items-center justify-between">
                   <h3 className="text-2xl font-black text-[#2F1F10]">
                     Mga Suki Review
                   </h3>
                   <Badge className="rounded-full border border-[#D7C29B] bg-[#FFF9EC] text-[#694F33] hover:bg-[#FFF9EC]">
-                    {product.reviews} total
+                    {normalizedProduct.reviews} total
                   </Badge>
                 </div>
 
@@ -428,7 +519,9 @@ export default function ProductDetailPage() {
                               <p className="font-black text-sm text-[#2F1F10]">
                                 {review.name}
                               </p>
-                              <p className="text-xs text-[#7A6547]">Verified Buyer</p>
+                              <p className="text-xs text-[#7A6547]">
+                                Verified Buyer
+                              </p>
                             </div>
                           </div>
 
@@ -450,11 +543,9 @@ export default function ProductDetailPage() {
               </div>
             </div>
 
-            {/* RIGHT */}
             <div className="lg:col-span-5">
               <Card className="sticky top-24 rounded-[30px] border-[3px] border-[#C89D57] bg-[#FFF9EC] shadow-[0_20px_60px_rgba(88,61,31,0.16)]">
                 <CardContent className="p-6 lg:p-7 space-y-7">
-                  {/* Price board */}
                   <div className="relative rounded-[28px] border-[3px] border-[#B98B4A] bg-gradient-to-br from-[#FFF1C5] via-[#FFF8E8] to-[#F8E2AA] p-5 shadow-sm">
                     <div className="absolute -top-3 right-4 rotate-[4deg] rounded-full bg-[#2E6C3C] px-3 py-1 text-[10px] font-black uppercase tracking-wide text-white shadow">
                       Direkta sa Coop
@@ -466,14 +557,14 @@ export default function ProductDetailPage() {
 
                     <div className="mt-3 flex items-end gap-2">
                       <span className="text-5xl font-black text-[#7A4A14]">
-                        ₱{product.price}
+                        ₱{normalizedProduct.price}
                       </span>
                       <span className="mb-1 text-lg text-[#7A6547]">/ kg</span>
                     </div>
 
                     <div className="mt-3 flex flex-wrap items-center gap-2">
                       <span className="text-sm line-through text-[#7A6547]">
-                        Karaniwang retail: ₱{product.marketPrice}
+                        Karaniwang retail: ₱{normalizedProduct.marketPrice}
                       </span>
                       <Badge className="rounded-full bg-[#2E6C3C] text-white hover:bg-[#2E6C3C]">
                         Tipid ₱{savingsPerKg}/kg
@@ -481,7 +572,6 @@ export default function ProductDetailPage() {
                     </div>
                   </div>
 
-                  {/* Buy mode */}
                   <div className="space-y-2">
                     <p className="text-xs font-black uppercase tracking-[0.22em] text-[#8B6A45]">
                       Paraan ng Bili
@@ -518,7 +608,6 @@ export default function ProductDetailPage() {
                     </div>
                   </div>
 
-                  {/* Pool board */}
                   {purchaseType === "pooled" && (
                     <div className="rounded-[24px] border-[2px] border-dashed border-[#95BC90] bg-[#EEF8E8] p-5">
                       <div className="flex items-center justify-between gap-3">
@@ -537,8 +626,8 @@ export default function ProductDetailPage() {
 
                       <div className="mt-4 space-y-1">
                         <p className="text-sm font-bold text-[#2F1F10]">
-                          {product.currentPooled}kg na ang naipon mula sa{" "}
-                          {product.buyersJoined} buyers
+                          {normalizedProduct.currentPooled}kg na ang naipon mula
+                          sa {normalizedProduct.buyersJoined} buyers
                         </p>
                         <p className="text-sm leading-relaxed text-[#5E472F]">
                           Kulang pa ng {pooledRemaining}kg para ma-unlock ang{" "}
@@ -551,7 +640,6 @@ export default function ProductDetailPage() {
                     </div>
                   )}
 
-                  {/* Quantity */}
                   <div className="space-y-3">
                     <p className="text-xs font-black uppercase tracking-[0.22em] text-[#8B6A45]">
                       Dami
@@ -575,7 +663,7 @@ export default function ProductDetailPage() {
 
                       <button
                         onClick={increaseQty}
-                        disabled={quantity >= product.quantity}
+                        disabled={quantity >= normalizedProduct.availableQuantity}
                         className="flex h-10 w-10 items-center justify-center rounded-xl border border-[#D7C29B] bg-white transition hover:bg-[#F5EEDC] disabled:opacity-50"
                       >
                         <Plus className="h-4 w-4" />
@@ -583,7 +671,6 @@ export default function ProductDetailPage() {
                     </div>
                   </div>
 
-                  {/* Summary */}
                   <div className="rounded-[24px] border-[2px] border-[#D7C29B] bg-[#FFFDF7] p-4">
                     <p className="mb-3 text-xs font-black uppercase tracking-[0.22em] text-[#8B6A45]">
                       Kwentahan
@@ -610,7 +697,9 @@ export default function ProductDetailPage() {
                       </div>
 
                       <div className="flex justify-between border-t border-dashed border-[#D8C7A0] pt-3">
-                        <span className="font-black text-[#2F1F10]">Kabuuan</span>
+                        <span className="font-black text-[#2F1F10]">
+                          Kabuuan
+                        </span>
                         <span className="text-lg font-black text-[#7A4A14]">
                           ₱{total.toFixed(2)}
                         </span>
@@ -618,16 +707,13 @@ export default function ProductDetailPage() {
                     </div>
                   </div>
 
-                  {/* CTA */}
                   <div className="space-y-4">
                     <Button
                       className="h-14 w-full rounded-2xl bg-[#2E6C3C] text-base font-black text-white shadow-lg hover:bg-[#285D35]"
                       onClick={handlePurchase}
-                  
                     >
-                          Secure Payment (Escrow)
-                          <Lock className="ml-2 h-5 w-5" />
-                    
+                      Secure Payment (Escrow)
+                      <Lock className="ml-2 h-5 w-5" />
                     </Button>
 
                     <div className="grid grid-cols-3 gap-2 text-center">
@@ -657,7 +743,6 @@ export default function ProductDetailPage() {
                     </p>
                   </div>
 
-                  {/* Seller placard */}
                   <div className="rounded-[24px] border-[2px] border-[#D7C29B] bg-[#FFFDF7] p-4 shadow-sm">
                     <div className="flex items-center gap-3">
                       <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#E9F6E5]">
@@ -665,9 +750,11 @@ export default function ProductDetailPage() {
                       </div>
 
                       <div className="min-w-0">
-                        <p className="text-xs text-[#7A6547]">Galing sa Stall</p>
+                        <p className="text-xs text-[#7A6547]">
+                          Galing sa Stall
+                        </p>
                         <p className="truncate font-black text-[#2F1F10]">
-                          {product.farmer}
+                          {normalizedProduct.farmer}
                         </p>
                         <p className="mt-0.5 flex items-center gap-1 text-xs text-[#2E6C3C]">
                           <CheckCircle2 className="h-3.5 w-3.5" />
@@ -685,7 +772,6 @@ export default function ProductDetailPage() {
                     </div>
                   </div>
 
-                  {/* Note card */}
                   <div className="rounded-[24px] border-[2px] border-dashed border-[#D8C7A0] bg-[#FFF4E5] p-4">
                     <div className="flex items-start gap-3">
                       <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[#F3E1B6]">
