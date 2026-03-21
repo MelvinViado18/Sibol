@@ -30,6 +30,31 @@ import { useParams, useRouter } from "next/navigation";
 
 const CHECKOUT_PRODUCT_KEY = "sibol_checkout_product";
 
+function WoodSign({
+  children,
+  className = "",
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <div className={`relative inline-block pt-4 ${className}`}>
+      <div className="absolute left-6 top-0 h-4 w-0.5 bg-[#6F4724]" />
+      <div className="absolute right-6 top-0 h-4 w-0.5 bg-[#6F4724]" />
+
+      <div className="relative rotate-[-1deg] rounded-2xl border-[3px] border-[#6F4724] bg-[#9A6938] px-8 py-3 shadow-md">
+        <div className="absolute inset-x-2 top-1 h-2 rounded-full bg-[#C08A52]/35" />
+        <div className="absolute left-3 top-1/2 h-2.5 w-2.5 -translate-y-1/2 rounded-full bg-[#6F4724]" />
+        <div className="absolute right-3 top-1/2 h-2.5 w-2.5 -translate-y-1/2 rounded-full bg-[#6F4724]" />
+
+        <span className="relative text-sm font-black uppercase tracking-[0.18em] text-[#FFF4D6]">
+          {children}
+        </span>
+      </div>
+    </div>
+  );
+}
+
 const riceGalleryCollection = {
   polished: [
     "/images/rice/polished-1.jpg",
@@ -435,9 +460,9 @@ export default function ProductDetailPage() {
                       Direkta sa Coop
                     </div>
 
-                    <p className="text-xs font-black uppercase tracking-[0.25em] text-[#86591C]">
+                    <WoodSign className="text-xs font-black uppercase tracking-[0.25em] text-[#86591C]">
                       Presyo Ngayon
-                    </p>
+                    </WoodSign>
 
                     <div className="mt-3 flex items-end gap-2">
                       <span className="text-5xl font-black text-[#7A4A14]">

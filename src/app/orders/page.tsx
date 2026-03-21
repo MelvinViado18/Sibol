@@ -21,6 +21,12 @@ import Image from "next/image";
 
 const ORDERS_STORAGE_KEY = "sibol_orders";
 
+declare global {
+  interface Window {
+    ethereum?: any;
+  }
+}
+
 const STATUS_CONFIG: Record<
   string,
   {
@@ -74,7 +80,6 @@ const STATUS_CONFIG: Record<
     trackingText: () => "There is an issue with this order. Payment remains on hold.",
   },
 
-  // fallback support for older orders
   pending: {
     label: "Pending",
     color: "bg-yellow-100 text-yellow-800",
@@ -108,6 +113,7 @@ export default function OrdersPage() {
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("all");
+  const [isWalletConnected, setIsWalletConnected] = useState<boolean | null>(null);
 
   useEffect(() => {
     const loadOrders = () => {
@@ -116,6 +122,8 @@ export default function OrdersPage() {
         if (storedOrders) {
           const parsed = JSON.parse(storedOrders);
           setOrders(Array.isArray(parsed) ? parsed : []);
+        } else {
+          setOrders([]);
         }
       } catch (error) {
         console.error("Failed to load orders:", error);
@@ -128,9 +136,51 @@ export default function OrdersPage() {
     loadOrders();
   }, []);
 
+  useEffect(() => {
+    const checkWallet = async () => {
+      if (!window.ethereum) {
+        setIsWalletConnected(false);
+        return;
+      }
+
+      try {
+        const accounts = await window.ethereum.request({
+          method: "eth_accounts",
+        });
+
+        setIsWalletConnected(Array.isArray(accounts) && accounts.length > 0);
+      } catch (error) {
+        console.error("Failed to check wallet:", error);
+        setIsWalletConnected(false);
+      }
+    };
+
+    checkWallet();
+  }, []);
+
   const filteredOrders = useMemo(() => {
-    return orders.filter((order) => filter === "all" || order.status === filter);
+    return orders.filter(
+      (order) => filter === "all" || order.status === filter
+    );
   }, [orders, filter]);
+
+  if (isWalletConnected === null) return null;
+
+  if (!isWalletConnected) {
+    return (
+      <div className="min-h-screen bg-[#F6EEDC] text-[#3C2A18]">
+        <Navbar />
+        <div className="container mx-auto px-4 py-10">
+          <div className="rounded-xl border bg-card p-8 text-center">
+            <h1 className="text-2xl font-bold">My Orders</h1>
+            <p className="mt-2 text-muted-foreground">
+              Connect your wallet first to view your orders.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (loading) {
     return (
@@ -147,7 +197,9 @@ export default function OrdersPage() {
       <div className="container mx-auto px-4 py-8">
         <div className="mx-auto max-w-5xl">
           <h1 className="mb-2 text-3xl font-black text-[#2F1F10]">My Orders</h1>
-          <p className="mb-6 text-[#7A6547]">Track your escrow payments and delivery progress</p>
+          <p className="mb-6 text-[#7A6547]">
+            Track your escrow payments and delivery progress
+          </p>
 
           <div className="mb-6 flex gap-2 overflow-x-auto pb-2">
             {FILTERS.map((status) => (
@@ -175,8 +227,6 @@ export default function OrdersPage() {
               {filteredOrders.map((order) => {
                 const config = STATUS_CONFIG[order.status] || STATUS_CONFIG.pending;
                 const StatusIcon = config.icon;
-
-                // support both old shape (items[]) and new shape (item)
                 const items = order.items || (order.item ? [order.item] : []);
 
                 return (
@@ -204,11 +254,13 @@ export default function OrdersPage() {
                           const itemImage =
                             item?.imageUrl?.trim() ? item.imageUrl : "/sibolLogo.png";
 
-                          const itemQuantity =
-                            item.quantity ?? order.quantity ?? 0;
+                          const itemQuantity = item.quantity ?? order.quantity ?? 0;
 
                           return (
-                            <div key={`${item.id || "item"}-${index}`} className="flex gap-3">
+                            <div
+                              key={`${item.id || "item"}-${index}`}
+                              className="flex gap-3"
+                            >
                               <div className="relative h-16 w-16 flex-shrink-0 overflow-hidden rounded-lg border border-[#D7C29B] bg-[#FFFDF7]">
                                 <Image
                                   src={itemImage}
@@ -262,7 +314,7 @@ export default function OrdersPage() {
                         </Button>
                       </div>
 
-                      <div className="mt-4 rounded-lg bg-[#FFFDF7] p-3 border border-[#E4D3B1]">
+                      <div className="mt-4 rounded-lg border border-[#E4D3B1] bg-[#FFFDF7] p-3">
                         <div className="flex items-center gap-2 text-sm text-[#5E472F]">
                           <Truck className="h-4 w-4 text-[#2E6C3C]" />
                           <span className="font-bold">Tracking:</span>
