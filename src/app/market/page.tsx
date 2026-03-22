@@ -992,7 +992,7 @@ export default function MarketplacePage() {
   <div className="container relative z-10 mx-auto px-4 py-10 lg:py-14">
     <div className="max-w-4xl space-y-5">
       <WoodSign>
-        {marketMode === "products" ? "Sibol Marketplace" : "Harvest Invesment"}
+        {marketMode === "products" ? "Sibol Marketplace" : "Harvest Investment"}
       </WoodSign>
 
       <div className="space-y-3">
