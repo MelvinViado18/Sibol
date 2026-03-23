@@ -46,13 +46,13 @@ import Image from "next/image";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/providers/AuthProvider";
 import { updateWalletBalance } from "@/lib/wallet-utils";
-import { ethers } from "ethers";
+import { useAccount, useConnect, useDisconnect, useChainId } from "wagmi";
 
-declare global {
-  interface Window {
-    ethereum?: any;
-  }
-}
+// declare global {
+//   interface Window {
+//     ethereum?: any;
+//   }
+// }
 
 const PRODUCTS_STORAGE_KEY = "sibol_products";
 const ORDERS_STORAGE_KEY = "sibol_orders";
@@ -194,10 +194,16 @@ function WoodSign({
   );
 }
 
-
 export default function FarmerDashboard() {
   const { user } = useAuth();
   const { toast } = useToast();
+
+  // wagmi wallet hooks
+  const { address, isConnected } = useAccount();
+  const { connect, connectors, isPending } = useConnect();
+  const { disconnect } = useDisconnect();
+  const chainId = useChainId();
+
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [activeSection, setActiveSection] = useState<ActiveSection>("create");
@@ -226,104 +232,18 @@ export default function FarmerDashboard() {
     minimumInvestment: "500",
   });
 
-  const createProductFromCampaign = () => {
-  if (!harvestingCampaign) return;
-
-  const campaign = harvestingCampaign;
-  const actualYieldKg = Number(settlementForm.actualYieldKg);
-  const actualSellPricePerKg = Number(settlementForm.actualSellPricePerKg);
-  const actualProductionCost = Number(settlementForm.actualProductionCost);
-
-  if (actualYieldKg <= 0 || actualSellPricePerKg <= 0 || actualProductionCost <= 0) {
-    toast({
-      title: "Invalid harvest values",
-      description: "Enter a valid harvested quantity, selling price, and production cost.",
-      variant: "destructive",
-    });
-    return;
-  }
-
-  if (campaign.linkedProductId) {
-    toast({
-      title: "Listing already created",
-      description: "This campaign already has a linked harvest listing.",
-      variant: "destructive",
-    });
-    return;
-  }
-
-  const newProduct: Product = {
-    id: crypto.randomUUID(),
-    name: `${campaign.title} Harvest`,
-    price: actualSellPricePerKg,
-    originalPrice: actualSellPricePerKg,
-    quantity: actualYieldKg,
-    availableQuantity: actualYieldKg,
-    sold: 0,
-    reservedQuantity: 0,
-    location: campaign.location,
-    harvestDate: new Date().toISOString().split("T")[0],
-    rating: 0,
-    reviews: 0,
-    imageUrl: campaign.coverImage || "https://picsum.photos/seed/rice-harvest/400/300",
-    images: campaign.coverImage ? [campaign.coverImage] : [],
-    isPooled: actualYieldKg >= 100,
-    category: "polished",
-    farmer: campaign.farmerName,
-    farmerName: campaign.farmerName,
-    farmerId: campaign.farmerId,
-    farmerWallet: campaign.farmerWallet,
-    farmerRating: 5,
-    description:
-      campaign.description || `Harvest from funded campaign: ${campaign.title}`,
-    paymentMethod: "wallet",
-    payoutStatus: "not_paid",
-    blockchainNetwork: "Base",
-    status: "active",
-    createdAt: new Date().toISOString(),
-  };
-
-  saveProduct(newProduct);
-
-  updateHarvestCampaign(campaign.id, {
-    status: "harvested",
-    actualYieldKg,
-    actualSellPricePerKg,
-    actualProductionCost,
-    linkedProductId: newProduct.id,
-    listingCreatedAt: new Date().toISOString(),
-  });
-
-  setHarvestingCampaign(null);
-
-  toast({
-    title: "Harvest listed",
-    description: "The harvested crop is now available in the marketplace.",
-  });
-};
-
   const [harvestingCampaign, setHarvestingCampaign] = useState<HarvestCampaign | null>(null);
-
-  const openHarvestModal = (campaign: HarvestCampaign) => {
-    setHarvestingCampaign(campaign);
-    setSettlementForm({
-      actualYieldKg: String(campaign.actualYieldKg ?? campaign.estimatedYieldKg ?? ""),
-      actualSellPricePerKg: String(
-        campaign.actualSellPricePerKg ?? campaign.targetSellPricePerKg ?? ""
-      ),
-      actualProductionCost: String(
-        campaign.actualProductionCost ?? campaign.estimatedProductionCost ?? ""
-      ),
-    });
-  };
+  const [settlingCampaign, setSettlingCampaign] = useState<HarvestCampaign | null>(null);
+  const [settlementForm, setSettlementForm] = useState({
+    actualYieldKg: "",
+    actualSellPricePerKg: "",
+    actualProductionCost: "",
+  });
 
   const [images, setImages] = useState<File[]>([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
   const [success, setSuccess] = useState(false);
-
-  const [walletAddress, setWalletAddress] = useState("");
-  const [walletConnecting, setWalletConnecting] = useState(false);
 
   const [products, setProducts] = useState<Product[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
@@ -340,107 +260,11 @@ export default function FarmerDashboard() {
     category: "polished",
   });
 
-  const [settlingCampaign, setSettlingCampaign] = useState<HarvestCampaign | null>(null);
-
-  const [settlementForm, setSettlementForm] = useState({
-    actualYieldKg: "",
-    actualSellPricePerKg: "",
-    actualProductionCost: "",
-  });
-
-  const openSettlementModal = (campaign: HarvestCampaign) => {
-    setSettlingCampaign(campaign);
-    setSettlementForm({
-      actualYieldKg: String(campaign.actualYieldKg ?? campaign.estimatedYieldKg ?? ""),
-      actualSellPricePerKg: String(
-        campaign.actualSellPricePerKg ?? campaign.targetSellPricePerKg ?? ""
-      ),
-      actualProductionCost: String(
-        campaign.actualProductionCost ?? campaign.estimatedProductionCost ?? ""
-      ),
-    });
-  };
-
-  const handleSettleCampaign = () => {
-    if (!settlingCampaign) return;
-    if (!settlingCampaign.linkedProductId) {
-      toast({
-        title: "No linked product",
-        description: "This campaign has no harvest listing yet.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const actualProductionCost = Number(settlementForm.actualProductionCost);
-
-    if (actualProductionCost <= 0) {
-      toast({
-        title: "Invalid production cost",
-        description: "Please enter a valid actual production cost.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const relatedOrders = getOrders().filter(
-      (order) =>
-        order.productId === settlingCampaign.linkedProductId &&
-        ["paid", "accepted", "in_transit", "delivered", "completed"].includes(
-          order.orderStatus || ""
-        )
-    );
-
-    const totalRevenue = relatedOrders.reduce(
-      (sum, order) => sum + Number(order.totalAmount || 0),
-      0
-    );
-
-    const totalSoldKg = relatedOrders.reduce(
-      (sum, order) => sum + Number(order.quantity || 0),
-      0
-    );
-
-    const netProfit = Math.max(totalRevenue - actualProductionCost, 0);
-    const investorProfitPool =
-      netProfit * (settlingCampaign.profitShareInvestors / 100);
-    const farmerProfit =
-      netProfit * (settlingCampaign.profitShareFarmer / 100);
-
-    settlingCampaign.investors.forEach((investor) => {
-      const shareRatio = investor.amount / settlingCampaign.fundingGoal;
-      const profitShare = investorProfitPool * shareRatio;
-      const totalPayout = investor.amount + profitShare;
-
-      updateWalletBalance(investor.userId, totalPayout);
-    });
-
-    updateWalletBalance(settlingCampaign.farmerId, farmerProfit);
-
-    updateHarvestCampaign(settlingCampaign.id, {
-      actualYieldKg: totalSoldKg,
-      actualProductionCost,
-      totalRevenue,
-      netProfit,
-      investorProfitPool,
-      farmerProfit,
-      settledAt: new Date().toISOString(),
-      status: "sold",
-    });
-
-    setSettlingCampaign(null);
-
-    toast({
-      title: "Campaign settled",
-      description: "Settlement was based on actual marketplace sales.",
-    });
-  };
-
   const farmerName = user?.name || "Local Farmer";
 
-  const shortAddress = (address: string) => {
-    if (!address) return "";
-    return `${address.slice(0, 6)}...${address.slice(-4)}`;
+  const shortAddress = (addr?: string) => {
+    if (!addr) return "";
+    return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
   };
 
   const getProducts = (): Product[] => {
@@ -618,85 +442,60 @@ export default function FarmerDashboard() {
   };
 
   const cancelHarvestCampaign = (campaignId: string) => {
-      const currentCampaigns = getHarvestCampaigns();
-      const campaign = currentCampaigns.find((item) => item.id === campaignId);
+    const currentCampaigns = getHarvestCampaigns();
+    const campaign = currentCampaigns.find((item) => item.id === campaignId);
 
-      if (!campaign) return;
+    if (!campaign) return;
 
-      if (campaign.status === "sold") {
-        toast({
-          title: "Cannot cancel campaign",
-          description: "A sold campaign can no longer be cancelled.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      campaign.investors.forEach((investor) => {
-        updateWalletBalance(investor.userId, investor.amount);
-      });
-
-      const updatedCampaigns = currentCampaigns.map((item) =>
-        item.id === campaignId
-          ? {
-              ...item,
-              status: "cancelled" as HarvestStatus,
-              fundedAmount: 0,
-              investors: [],
-            }
-          : item
-      );
-
-      localStorage.setItem(HARVESTS_STORAGE_KEY, JSON.stringify(updatedCampaigns));
-      setHarvestCampaigns(updatedCampaigns);
-
-      window.dispatchEvent(
-        new StorageEvent("storage", {
-          key: HARVESTS_STORAGE_KEY,
-          newValue: JSON.stringify(updatedCampaigns),
-        })
-      );
-
+    if (campaign.status === "sold") {
       toast({
-        title: "Campaign cancelled",
-        description: "All investors were refunded and the campaign is now cancelled.",
+        title: "Cannot cancel campaign",
+        description: "A sold campaign can no longer be cancelled.",
+        variant: "destructive",
       });
-    };
+      return;
+    }
+
+    campaign.investors.forEach((investor) => {
+      updateWalletBalance(investor.userId, investor.amount);
+    });
+
+    const updatedCampaigns = currentCampaigns.map((item) =>
+      item.id === campaignId
+        ? {
+            ...item,
+            status: "cancelled" as HarvestStatus,
+            fundedAmount: 0,
+            investors: [],
+          }
+        : item
+    );
+
+    localStorage.setItem(HARVESTS_STORAGE_KEY, JSON.stringify(updatedCampaigns));
+    setHarvestCampaigns(updatedCampaigns);
+
+    window.dispatchEvent(
+      new StorageEvent("storage", {
+        key: HARVESTS_STORAGE_KEY,
+        newValue: JSON.stringify(updatedCampaigns),
+      })
+    );
+
+    toast({
+      title: "Campaign cancelled",
+      description: "All investors were refunded and the campaign is now cancelled.",
+    });
+  };
 
   useEffect(() => {
-    const savedWallet = localStorage.getItem(FARMER_WALLET_KEY);
-
-    if (!savedWallet || !ethers.isAddress(savedWallet)) {
-      localStorage.removeItem(FARMER_WALLET_KEY);
-      localStorage.removeItem("sibol_harvests");
-    }
-
-    if (savedWallet && ethers.isAddress(savedWallet)) {
-      setWalletAddress(savedWallet);
-    } else {
-      localStorage.removeItem(FARMER_WALLET_KEY);
-      setWalletAddress("");
-    }
-
     refreshDashboardData();
 
     const handleStorageChange = (e: StorageEvent) => {
       if (
         e.key === PRODUCTS_STORAGE_KEY ||
         e.key === ORDERS_STORAGE_KEY ||
-        e.key === FARMER_WALLET_KEY ||
         e.key === HARVESTS_STORAGE_KEY
       ) {
-        if (e.key === FARMER_WALLET_KEY) {
-          const newWallet = localStorage.getItem(FARMER_WALLET_KEY);
-
-          if (newWallet && ethers.isAddress(newWallet)) {
-            setWalletAddress(newWallet);
-          } else {
-            setWalletAddress("");
-          }
-        }
-
         refreshDashboardData();
       }
     };
@@ -705,78 +504,19 @@ export default function FarmerDashboard() {
     return () => window.removeEventListener("storage", handleStorageChange);
   }, []);
 
-  const connectWallet = async () => {
-    try {
-      setWalletConnecting(true);
-
-      if (window.ethereum) {
-        const accounts = await window.ethereum.request({
-          method: "eth_requestAccounts",
-        });
-
-        if (accounts && accounts.length > 0) {
-          const address = accounts[0];
-          setWalletAddress(address);
-          localStorage.setItem(FARMER_WALLET_KEY, address);
-
-          toast({
-            title: "Wallet connected",
-            description: `Connected: ${shortAddress(address)}`,
-          });
-          return;
-        }
-      }
-
-      if (!window.ethereum) {
-        toast({
-          title: "Wallet required",
-          description: "Please install MetaMask.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      toast({
-        title: "Demo wallet connected",
-        description: "MetaMask was not detected, so a demo wallet was used.",
-      });
-    } catch {
-      toast({
-        title: "Wallet connection failed",
-        description: "Could not connect wallet. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setWalletConnecting(false);
+  const handleConnectWallet = () => {
+    const injectedConnector = connectors.find(c => c.id === 'injected');
+    if (injectedConnector) {
+      connect({ connector: injectedConnector });
+    } else if (connectors[0]) {
+      connect({ connector: connectors[0] });
     }
   };
 
-  const disconnectWallet = () => {
-    setWalletAddress("");
-    localStorage.removeItem(FARMER_WALLET_KEY);
-
-    toast({
-      title: "Wallet disconnected",
-      description: "Your payout wallet has been removed from this prototype.",
-    });
-  };
-
-  const copyWalletAddress = async () => {
-    if (!walletAddress) return;
-
-    try {
-      await navigator.clipboard.writeText(walletAddress);
-      toast({
-        title: "Copied",
-        description: "Wallet address copied to clipboard.",
-      });
-    } catch {
-      toast({
-        title: "Copy failed",
-        description: "Unable to copy wallet address.",
-        variant: "destructive",
-      });
-    }
+  const copyAddress = async () => {
+    if (!address) return;
+    await navigator.clipboard.writeText(address);
+    toast({ title: "Copied", description: "Wallet address copied to clipboard." });
   };
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -844,7 +584,7 @@ export default function FarmerDashboard() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!walletAddress) {
+    if (!isConnected || !address) {
       toast({
         title: "Connect wallet first",
         description: "Please connect your wallet before creating a listing.",
@@ -907,7 +647,7 @@ export default function FarmerDashboard() {
       farmer: farmerName,
       farmerName,
       farmerId: user?.id || user?.email || farmerName,
-      farmerWallet: walletAddress,
+      farmerWallet: address,
       farmerRating: 5.0,
       description: formData.description.trim(),
       paymentMethod: "wallet",
@@ -936,7 +676,7 @@ export default function FarmerDashboard() {
   const handleFundingSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!walletAddress) {
+    if (!isConnected || !address) {
       toast({
         title: "Connect wallet first",
         description: "Please connect your wallet before creating a funding campaign.",
@@ -986,7 +726,7 @@ export default function FarmerDashboard() {
       id: crypto.randomUUID(),
       farmerId: user?.id || user?.email || farmerName,
       farmerName,
-      farmerWallet: walletAddress,
+      farmerWallet: address,
       title: fundingForm.title.trim(),
       cropType: fundingForm.cropType,
       location: fundingForm.location.trim(),
@@ -1020,11 +760,187 @@ export default function FarmerDashboard() {
     setActiveSection("funding");
   };
 
+  const createProductFromCampaign = () => {
+    if (!harvestingCampaign) return;
+
+    const campaign = harvestingCampaign;
+    const actualYieldKg = Number(settlementForm.actualYieldKg);
+    const actualSellPricePerKg = Number(settlementForm.actualSellPricePerKg);
+    const actualProductionCost = Number(settlementForm.actualProductionCost);
+
+    if (actualYieldKg <= 0 || actualSellPricePerKg <= 0 || actualProductionCost <= 0) {
+      toast({
+        title: "Invalid harvest values",
+        description: "Enter a valid harvested quantity, selling price, and production cost.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (campaign.linkedProductId) {
+      toast({
+        title: "Listing already created",
+        description: "This campaign already has a linked harvest listing.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const newProduct: Product = {
+      id: crypto.randomUUID(),
+      name: `${campaign.title} Harvest`,
+      price: actualSellPricePerKg,
+      originalPrice: actualSellPricePerKg,
+      quantity: actualYieldKg,
+      availableQuantity: actualYieldKg,
+      sold: 0,
+      reservedQuantity: 0,
+      location: campaign.location,
+      harvestDate: new Date().toISOString().split("T")[0],
+      rating: 0,
+      reviews: 0,
+      imageUrl: campaign.coverImage || "https://picsum.photos/seed/rice-harvest/400/300",
+      images: campaign.coverImage ? [campaign.coverImage] : [],
+      isPooled: actualYieldKg >= 100,
+      category: "polished",
+      farmer: campaign.farmerName,
+      farmerName: campaign.farmerName,
+      farmerId: campaign.farmerId,
+      farmerWallet: campaign.farmerWallet,
+      farmerRating: 5,
+      description:
+        campaign.description || `Harvest from funded campaign: ${campaign.title}`,
+      paymentMethod: "wallet",
+      payoutStatus: "not_paid",
+      blockchainNetwork: "Base",
+      status: "active",
+      createdAt: new Date().toISOString(),
+    };
+
+    saveProduct(newProduct);
+
+    updateHarvestCampaign(campaign.id, {
+      status: "harvested",
+      actualYieldKg,
+      actualSellPricePerKg,
+      actualProductionCost,
+      linkedProductId: newProduct.id,
+      listingCreatedAt: new Date().toISOString(),
+    });
+
+    setHarvestingCampaign(null);
+
+    toast({
+      title: "Harvest listed",
+      description: "The harvested crop is now available in the marketplace.",
+    });
+  };
+
+  const handleSettleCampaign = () => {
+    if (!settlingCampaign) return;
+    if (!settlingCampaign.linkedProductId) {
+      toast({
+        title: "No linked product",
+        description: "This campaign has no harvest listing yet.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const actualProductionCost = Number(settlementForm.actualProductionCost);
+
+    if (actualProductionCost <= 0) {
+      toast({
+        title: "Invalid production cost",
+        description: "Please enter a valid actual production cost.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const relatedOrders = getOrders().filter(
+      (order) =>
+        order.productId === settlingCampaign.linkedProductId &&
+        ["paid", "accepted", "in_transit", "delivered", "completed"].includes(
+          order.orderStatus || ""
+        )
+    );
+
+    const totalRevenue = relatedOrders.reduce(
+      (sum, order) => sum + Number(order.totalAmount || 0),
+      0
+    );
+
+    const totalSoldKg = relatedOrders.reduce(
+      (sum, order) => sum + Number(order.quantity || 0),
+      0
+    );
+
+    const netProfit = Math.max(totalRevenue - actualProductionCost, 0);
+    const investorProfitPool =
+      netProfit * (settlingCampaign.profitShareInvestors / 100);
+    const farmerProfit =
+      netProfit * (settlingCampaign.profitShareFarmer / 100);
+
+    settlingCampaign.investors.forEach((investor) => {
+      const shareRatio = investor.amount / settlingCampaign.fundingGoal;
+      const profitShare = investorProfitPool * shareRatio;
+      const totalPayout = investor.amount + profitShare;
+
+      updateWalletBalance(investor.userId, totalPayout);
+    });
+
+    updateWalletBalance(settlingCampaign.farmerId, farmerProfit);
+
+    updateHarvestCampaign(settlingCampaign.id, {
+      actualYieldKg: totalSoldKg,
+      actualProductionCost,
+      totalRevenue,
+      netProfit,
+      investorProfitPool,
+      farmerProfit,
+      settledAt: new Date().toISOString(),
+      status: "sold",
+    });
+
+    setSettlingCampaign(null);
+
+    toast({
+      title: "Campaign settled",
+      description: "Settlement was based on actual marketplace sales.",
+    });
+  };
+
+  const openHarvestModal = (campaign: HarvestCampaign) => {
+    setHarvestingCampaign(campaign);
+    setSettlementForm({
+      actualYieldKg: String(campaign.actualYieldKg ?? campaign.estimatedYieldKg ?? ""),
+      actualSellPricePerKg: String(
+        campaign.actualSellPricePerKg ?? campaign.targetSellPricePerKg ?? ""
+      ),
+      actualProductionCost: String(
+        campaign.actualProductionCost ?? campaign.estimatedProductionCost ?? ""
+      ),
+    });
+  };
+
+  const openSettlementModal = (campaign: HarvestCampaign) => {
+    setSettlingCampaign(campaign);
+    setSettlementForm({
+      actualYieldKg: String(campaign.actualYieldKg ?? campaign.estimatedYieldKg ?? ""),
+      actualSellPricePerKg: String(
+        campaign.actualSellPricePerKg ?? campaign.targetSellPricePerKg ?? ""
+      ),
+      actualProductionCost: String(
+        campaign.actualProductionCost ?? campaign.estimatedProductionCost ?? ""
+      ),
+    });
+  };
+
   const farmerProducts = useMemo(() => {
     return products
       .filter((product) => {
-        const sameWallet =
-          walletAddress && product.farmerWallet && product.farmerWallet === walletAddress;
+        const sameWallet = address && product.farmerWallet === address;
         const sameName = product.farmer === farmerName || product.farmerName === farmerName;
         return sameWallet || sameName;
       })
@@ -1033,13 +949,12 @@ export default function FarmerDashboard() {
         const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
         return bTime - aTime;
       });
-  }, [products, walletAddress, farmerName]);
+  }, [products, address, farmerName]);
 
   const farmerOrders = useMemo(() => {
     return orders
       .filter((order) => {
-        const sameWallet =
-          walletAddress && order.farmerWallet && order.farmerWallet === walletAddress;
+        const sameWallet = address && order.farmerWallet === address;
         const sameName = order.farmerName === farmerName || order.farmer === farmerName;
         return sameWallet || sameName;
       })
@@ -1048,18 +963,13 @@ export default function FarmerDashboard() {
         const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
         return bTime - aTime;
       });
-  }, [orders, walletAddress, farmerName]);
+  }, [orders, address, farmerName]);
 
   const farmerHarvestCampaigns = useMemo(() => {
     return harvestCampaigns
       .filter((campaign) => {
-        const sameWallet =
-          walletAddress &&
-          campaign.farmerWallet &&
-          campaign.farmerWallet === walletAddress;
-
+        const sameWallet = address && campaign.farmerWallet === address;
         const sameName = campaign.farmerName === farmerName;
-
         return sameWallet || sameName;
       })
       .sort((a, b) => {
@@ -1067,7 +977,7 @@ export default function FarmerDashboard() {
         const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
         return bTime - aTime;
       });
-  }, [harvestCampaigns, walletAddress, farmerName]);
+  }, [harvestCampaigns, address, farmerName]);
 
   const activeListingsCount = farmerProducts.filter(
     (product) => product.status === "active"
@@ -1561,15 +1471,15 @@ export default function FarmerDashboard() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                {walletAddress ? (
+                {isConnected && address ? (
                   <>
                     <div className="rounded-2xl border border-[#E8D7B5] bg-[#FFF8E8] px-3 py-3">
                       <p className="text-xs text-muted-foreground mb-1">Connected Address</p>
-                      <p className="text-sm break-all">{walletAddress}</p>
+                      <p className="text-sm break-all">{shortAddress(address)}</p>
                     </div>
 
                     <div className="grid grid-cols-2 gap-2">
-                      <Button type="button" variant="outline" size="sm" onClick={copyWalletAddress}>
+                      <Button type="button" variant="outline" size="sm" onClick={copyAddress}>
                         <Copy className="h-4 w-4 mr-2" />
                         Copy
                       </Button>
@@ -1577,12 +1487,10 @@ export default function FarmerDashboard() {
                         type="button"
                         variant="outline"
                         size="sm"
-                        onClick={disconnectWallet}
+                        onClick={() => disconnect()}
                       >
                         Disconnect
                       </Button>
-
-                      
                     </div>
                   </>
                 ) : (
@@ -1593,10 +1501,10 @@ export default function FarmerDashboard() {
                     <Button
                       type="button"
                       className="w-full"
-                      onClick={connectWallet}
-                      disabled={walletConnecting}
+                      onClick={handleConnectWallet}
+                      disabled={isPending}
                     >
-                      {walletConnecting ? (
+                      {isPending ? (
                         <>
                           <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
                           Connecting...
@@ -1744,8 +1652,8 @@ export default function FarmerDashboard() {
 
                           <div className="p-6 space-y-4">
                             <div className="rounded-2xl bg-[#FFF8E8] border border-[#E8D7B5] px-4 py-3 text-sm text-muted-foreground">
-                              {walletAddress
-                                ? `Payout wallet connected: ${shortAddress(walletAddress)}`
+                              {isConnected && address
+                                ? `Payout wallet connected: ${shortAddress(address)}`
                                 : "Connect a wallet before publishing your harvest."}
                             </div>
 
@@ -1852,14 +1760,14 @@ export default function FarmerDashboard() {
                             <Button
                               type="submit"
                               className="w-full h-12 text-base"
-                              disabled={uploading || !walletAddress}
+                              disabled={uploading || !isConnected || !address}
                             >
                               {uploading ? (
                                 <div className="flex items-center gap-2">
                                   <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
                                   Publishing Harvest...
                                 </div>
-                              ) : !walletAddress ? (
+                              ) : !isConnected || !address ? (
                                 "Connect Wallet to Publish"
                               ) : (
                                 "Publish to Marketplace"
@@ -2091,9 +1999,9 @@ export default function FarmerDashboard() {
                         <Button
                           type="submit"
                           className="w-full h-12 text-base"
-                          disabled={!walletAddress}
+                          disabled={!isConnected || !address}
                         >
-                          {!walletAddress
+                          {!isConnected || !address
                             ? "Connect Wallet to Create Campaign"
                             : "Launch Funding Campaign"}
                         </Button>
