@@ -486,11 +486,11 @@ export default function LandingPage() {
             </div>
 
             {/* Hero Section for Micro-Invest */}
-            <div className="grid items-center gap-12 lg:grid-cols-2 mb-20">
-              <div className="relative">
+            <div className="grid items-stretch gap-12 lg:grid-cols-2 mb-20">
+              <div className="relative h-full">
                 <div className="absolute -inset-4 rounded-[2rem] bg-primary/10 blur-2xl opacity-50" />
-                <div className="relative overflow-hidden rounded-[1.5rem] border border-primary/30 bg-white shadow-xl">
-                  <div className="relative w-full overflow-hidden" style={{ aspectRatio: "4/3" }}>
+                <div className="relative overflow-hidden rounded-[1.5rem] border border-primary/30 bg-white shadow-xl h-full flex flex-col">
+                  <div className="relative w-full overflow-hidden flex-1" style={{ minHeight: 0 }}>
                     <Image
                       src={investImageUrl}
                       alt="Rice harvest in Philippines"
@@ -523,7 +523,7 @@ export default function LandingPage() {
                 </div>
               </div>
 
-              <div>
+              <div className="flex flex-col justify-center">
                 <div className="mb-8">
                   <Badge className="bg-primary/10 text-primary border-none mb-4">
                     For Everyone
