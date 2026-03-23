@@ -38,6 +38,23 @@ export function Navbar() {
     disconnect();
   };
 
+  useEffect(() => {
+    updateWalletState();
+
+    if (!window.ethereum) return;
+
+    const handleAccountsChanged = () => updateWalletState();
+    const handleChainChanged = () => updateWalletState();
+
+    window.ethereum.on?.("accountsChanged", handleAccountsChanged);
+    window.ethereum.on?.("chainChanged", handleChainChanged);
+
+    return () => {
+      window.ethereum.removeListener?.("accountsChanged", handleAccountsChanged);
+      window.ethereum.removeListener?.("chainChanged", handleChainChanged);
+    };
+  }, []);
+
   const navLinks = [
     { name: 'Marketplace', href: '/market', icon: ShoppingBag },
     { name: 'Farmer Portal', href: '/farmer', icon: LayoutDashboard },
@@ -55,8 +72,14 @@ export function Navbar() {
         <div className="flex h-16 items-center justify-between">
           <div className="flex items-center gap-2">
             <Link href="/" className="flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
-                <Leaf className="h-5 w-5 text-primary-foreground" />
+              <div className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-lg">
+                <Image
+                  src="/sibolLogo.png"
+                  alt="Sibol logo"
+                  width={32}
+                  height={32}
+                  className="h-8 w-8 object-contain"
+                />
               </div>
               <span className="text-xl font-bold tracking-tight text-primary font-headline">
                 SibolMarket
@@ -64,9 +87,24 @@ export function Navbar() {
             </Link>
           </div>
 
-          {/* Desktop Nav */}
           <div className="hidden md:flex items-center gap-6">
-            {navLinks.map((link) => (
+            {navLinks.map((link) => {
+            const isMyOrders = link.name === "My Orders";
+
+            if (isMyOrders && !isConnected) {
+              return (
+                <button
+                  key={link.name}
+                  type="button"
+                  onClick={connectWallet}
+                  className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary"
+                >
+                  {link.name}
+                </button>
+              );
+            }
+
+            return (
               <Link
                 key={link.name}
                 href={link.href}
@@ -107,7 +145,6 @@ export function Navbar() {
             {error && <p className="text-xs text-red-500">{error.message}</p>}
           </div>
 
-          {/* Mobile menu button */}
           <div className="md:hidden flex items-center gap-2">
             <Button variant="ghost" size="icon" onClick={() => setIsOpen(!isOpen)}>
               {isOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
@@ -119,7 +156,27 @@ export function Navbar() {
       {/* Mobile Nav */}
       <div className={cn('md:hidden border-t bg-background', isOpen ? 'block' : 'hidden')}>
         <div className="container mx-auto px-4 py-4 space-y-4">
-          {navLinks.map((link) => (
+          {navLinks.map((link) => {
+          const isMyOrders = link.name === "My Orders";
+
+          if (isMyOrders && !isConnected) {
+            return (
+              <button
+                key={link.name}
+                type="button"
+                onClick={() => {
+                  setIsOpen(false);
+                  connectWallet();
+                }}
+                className="flex w-full items-center gap-3 text-base font-medium text-muted-foreground p-2 hover:bg-secondary rounded-md"
+              >
+                <link.icon className="h-5 w-5" />
+                {link.name}
+              </button>
+            );
+          }
+
+          return (
             <Link
               key={link.name}
               href={link.href}

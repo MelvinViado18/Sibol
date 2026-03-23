@@ -16,7 +16,7 @@ const sourceCodePro = Source_Code_Pro({
 });
 
 export const metadata: Metadata = {
-  title: "SibolMarket | Decentralized Farm-to-Market",
+  title: "Sibol | Decentralized Farm-to-Market",
   description: "Empowering farmers with blockchain-based direct trade on Base.",
 };
 
