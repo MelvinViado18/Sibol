@@ -203,7 +203,7 @@ function normalizeHarvest(harvest: Partial<Harvest>, index: number): Harvest {
     coverImage: harvest.coverImage || getImageByCategory("polished", index),
     verified: typeof harvest.verified === "boolean" ? harvest.verified : true,
   };
-}   
+}
 
 const SAMPLE_PRODUCTS: Product[] = [
   {
@@ -472,6 +472,172 @@ function getRiskLevel(harvest: Harvest) {
   return "High Risk";
 }
 
+// ============================================================
+// RICE SACK SVG COMPONENT - NO TEXT/LABELS
+// Clean burlap sack with rope, grains, no text labels
+// ============================================================
+function RiceSackBackground({ className = "", opacity = 0.6 }: { className?: string; opacity?: number }) {
+  return (
+    <svg
+      viewBox="0 0 320 480"
+      xmlns="http://www.w3.org/2000/svg"
+      className={className}
+      style={{ opacity }}
+    >
+      <defs>
+        <linearGradient id="sack-body-buy" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stopColor="#F0D88A" />
+          <stop offset="12%" stopColor="#DDBB60" />
+          <stop offset="48%" stopColor="#C8A040" />
+          <stop offset="80%" stopColor="#B08830" />
+          <stop offset="100%" stopColor="#8A6418" />
+        </linearGradient>
+        <linearGradient id="sack-neck-buy" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stopColor="#D8C070" />
+          <stop offset="50%" stopColor="#C0A040" />
+          <stop offset="100%" stopColor="#8A6818" />
+        </linearGradient>
+        <linearGradient id="sack-rope-buy" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stopColor="#B89048" />
+          <stop offset="40%" stopColor="#8A6828" />
+          <stop offset="100%" stopColor="#5A4010" />
+        </linearGradient>
+        <pattern id="sack-warp-buy" x="0" y="0" width="7" height="2" patternUnits="userSpaceOnUse">
+          <line x1="1.5" y1="0" x2="1.5" y2="2" stroke="#9A7020" strokeWidth="1.1" opacity="0.48" />
+          <line x1="5" y1="0" x2="5" y2="2" stroke="#836010" strokeWidth="0.8" opacity="0.32" />
+        </pattern>
+        <pattern id="sack-weft-buy" x="0" y="0" width="2" height="8" patternUnits="userSpaceOnUse">
+          <line x1="0" y1="2" x2="2" y2="2" stroke="#C09838" strokeWidth="1.0" opacity="0.38" />
+          <line x1="0" y1="6" x2="2" y2="6" stroke="#AA8228" strokeWidth="0.75" opacity="0.28" />
+        </pattern>
+      </defs>
+
+      <path
+        d="M 72 340 Q 50 320 46 240 Q 42 160 52 110 Q 60 74 78 60 L 242 60 Q 260 74 268 110 Q 278 160 274 240 Q 270 320 248 340 Z"
+        fill="url(#sack-body-buy)"
+      />
+      <path
+        d="M 72 340 Q 50 320 46 240 Q 42 160 52 110 Q 60 74 78 60 L 242 60 Q 260 74 268 110 Q 278 160 274 240 Q 270 320 248 340 Z"
+        fill="url(#sack-warp-buy)"
+        opacity="0.5"
+      />
+      <path
+        d="M 72 340 Q 50 320 46 240 Q 42 160 52 110 Q 60 74 78 60 L 242 60 Q 260 74 268 110 Q 278 160 274 240 Q 270 320 248 340 Z"
+        fill="url(#sack-weft-buy)"
+        opacity="0.45"
+      />
+      <path
+        d="M 72 340 Q 50 320 46 240 Q 42 160 52 110 Q 60 74 78 60 L 108 60 Q 92 74 86 110 Q 76 160 78 240 Q 79 320 90 340 Z"
+        fill="#FDEEB0"
+        opacity="0.35"
+      />
+      <path
+        d="M 76 336 Q 110 352 160 354 Q 210 352 244 336 Q 220 345 160 347 Q 100 345 76 336 Z"
+        fill="#5A3A08"
+        opacity="0.22"
+      />
+      <path
+        d="M 80 62 Q 62 100 56 180 Q 50 250 60 330"
+        fill="none"
+        stroke="#6A4818"
+        strokeWidth="4"
+        strokeLinecap="round"
+        opacity="0.55"
+        strokeDasharray="6 4"
+      />
+      <path
+        d="M 240 62 Q 258 100 264 180 Q 270 250 260 330"
+        fill="none"
+        stroke="#6A4818"
+        strokeWidth="4"
+        strokeLinecap="round"
+        opacity="0.55"
+        strokeDasharray="6 4"
+      />
+      <path
+        d="M 78 62 Q 96 40 126 33 Q 144 29 160 28 Q 176 29 194 33 Q 224 40 242 62 Z"
+        fill="url(#sack-neck-buy)"
+      />
+      <path
+        d="M 78 62 Q 96 40 126 33 Q 144 29 160 28 Q 176 29 194 33 Q 224 40 242 62 Z"
+        fill="url(#sack-warp-buy)"
+        opacity="0.6"
+      />
+      <path
+        d="M 110 28 Q 134 18 160 16 Q 186 18 210 28"
+        fill="none"
+        stroke="url(#sack-rope-buy)"
+        strokeWidth="8"
+        strokeLinecap="round"
+      />
+      <path
+        d="M 116 35 Q 138 26 160 24 Q 182 26 204 35"
+        fill="none"
+        stroke="url(#sack-rope-buy)"
+        strokeWidth="5.5"
+        strokeLinecap="round"
+        opacity="0.85"
+      />
+      <ellipse cx="160" cy="16" rx="24" ry="16" fill="#9A7030" />
+      <ellipse cx="160" cy="16" rx="24" ry="16" fill="none" stroke="#4A2C08" strokeWidth="1.5" />
+      <path
+        d="M 138 16 Q 122 -4 132 -14 Q 142 -22 150 -6 Q 155 6 146 16"
+        fill="#9A7030"
+        stroke="#4A2C08"
+        strokeWidth="1.2"
+      />
+      <path
+        d="M 182 16 Q 198 -4 188 -14 Q 178 -22 170 -6 Q 165 6 174 16"
+        fill="#9A7030"
+        stroke="#4A2C08"
+        strokeWidth="1.2"
+      />
+      <path d="M 140 22 Q 122 36 114 55 Q 108 70 112 84" fill="none" stroke="#8A6828" strokeWidth="6" strokeLinecap="round" />
+      <path d="M 180 22 Q 198 36 206 55 Q 212 70 208 84" fill="none" stroke="#8A6828" strokeWidth="6" strokeLinecap="round" />
+      <ellipse cx="56" cy="358" rx="8" ry="3.5" fill="#EDE0B0" opacity="0.7" />
+      <ellipse cx="40" cy="367" rx="7" ry="3" fill="#E8D8A8" opacity="0.6" />
+      <ellipse cx="68" cy="368" rx="7.5" ry="3" fill="#F0E4B8" opacity="0.7" />
+      <ellipse cx="264" cy="358" rx="8" ry="3.5" fill="#EDE0B0" opacity="0.7" />
+      <ellipse cx="280" cy="367" rx="7" ry="3" fill="#E8D8A8" opacity="0.6" />
+      <ellipse cx="250" cy="368" rx="7.5" ry="3" fill="#F0E4B8" opacity="0.7" />
+      <ellipse cx="130" cy="362" rx="6.5" ry="2.8" fill="#EDE4B4" opacity="0.6" />
+      <ellipse cx="190" cy="362" rx="6.5" ry="2.8" fill="#F0E0B0" opacity="0.6" />
+    </svg>
+  );
+}
+
+// Background rice sacks container - ONLY FOR BUY PRODUCTS SECTION
+// Arranged with 2 on left, 2 on right, 1 in middle (no text labels)
+function RiceSackBackgroundGrid() {
+  return (
+    <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden">
+      {/* Soft overlay for readability - keeps content visible */}
+      <div className="absolute inset-0 bg-[#F6EEDC]/30" />
+      
+      {/* LEFT SIDE - 2 sacks */}
+      <div className="absolute left-[1%] top-[8%] w-48 opacity-45 rotate-[-8deg] hidden lg:block">
+        <RiceSackBackground className="w-full h-auto drop-shadow-md" opacity={0.5} />
+      </div>
+      <div className="absolute left-[2%] bottom-[15%] w-52 opacity-45 rotate-[10deg] hidden lg:block">
+        <RiceSackBackground className="w-full h-auto drop-shadow-md" opacity={0.48} />
+      </div>
+      
+      {/* RIGHT SIDE - 2 sacks */}
+      <div className="absolute right-[1%] top-[12%] w-48 opacity-45 rotate-[6deg] hidden lg:block">
+        <RiceSackBackground className="w-full h-auto drop-shadow-md" opacity={0.5} />
+      </div>
+      <div className="absolute right-[2%] bottom-[18%] w-52 opacity-45 rotate-[-8deg] hidden lg:block">
+        <RiceSackBackground className="w-full h-auto drop-shadow-md" opacity={0.48} />
+      </div>
+      
+      {/* CENTER BACK - 1 subtle sack */}
+      <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-72 opacity-20 rotate-0 hidden xl:block">
+        <RiceSackBackground className="w-full h-auto drop-shadow-xl" opacity={0.28} />
+      </div>
+    </div>
+  );
+}
+
 export default function MarketplacePage() {
   const [marketMode, setMarketMode] = useState<"products" | "harvests">(
     "products"
@@ -640,7 +806,6 @@ export default function MarketplacePage() {
     let harvests = [...harvestCampaigns];
 
     harvests = harvests.filter((harvest) => {
-      // Skip cancelled campaigns completely
       if (harvest.status === "cancelled") {
         return false;
       }
@@ -750,29 +915,9 @@ export default function MarketplacePage() {
         console.log("Demo mode: sender and recipient are the same, skipping on-chain transfer.");
       }
 
-      // Call investInHarvest - check what it returns
       const result = investInHarvest(harvestId, amount);
-      
-      // Handle different possible return types
-      let updatedCampaign;
-      if (Array.isArray(result)) {
-        // If it returns an array, assume it's the updated campaigns list
-        updatedCampaign = result.find(campaign => campaign.id === harvestId);
-        if (!updatedCampaign) {
-          throw new Error("Campaign not found in updated list");
-        }
-      } else if (result && typeof result === 'object' && 'campaign' in result) {
-        // If it returns an object with campaign property
-        updatedCampaign = (result as any).campaign;
-      } else {
-        // If it returns the campaign directly
-        updatedCampaign = result;
-      }
 
-      if (!updatedCampaign) {
-        throw new Error("Failed to get updated campaign information");
-      }
-
+      const updatedCampaign = result.campaign;
       const nextFundedAmount = updatedCampaign.fundedAmount;
 
       const nextStatus =
@@ -827,252 +972,453 @@ export default function MarketplacePage() {
       <Navbar />
 
       <header className="relative overflow-hidden border-b border-[#D9C6A0] bg-[#F6EEDC]">
-  {/* Top stripe */}
-  <div className="h-10 bg-[repeating-linear-gradient(90deg,#2E6C3C_0px,#2E6C3C_28px,#F7EED8_28px,#F7EED8_56px)] border-b-[3px] border-[#8A5A2B]" />
+        {/* Top stripe */}
+        <div className="h-10 bg-[repeating-linear-gradient(90deg,#2E6C3C_0px,#2E6C3C_28px,#F7EED8_28px,#F7EED8_56px)] border-b-[3px] border-[#8A5A2B]" />
 
-  {/* Filipino Rice Field Background - only for harvests */}
-  {marketMode === "harvests" && (
-    <div className="pointer-events-none absolute inset-0 overflow-hidden">
-      {/* Base sky */}
-      <div className="absolute inset-0 bg-[linear-gradient(to_bottom,#FFF8E6_0%,#FBE8BF_22%,#F3D897_48%,#DDC076_72%,#CFAA5F_100%)]" />
-
-      {/* Grainy warm overlay */}
-      <div className="absolute inset-0 opacity-[0.08] bg-[radial-gradient(circle_at_20%_20%,#ffffff_0.8px,transparent_1px)] bg-[length:16px_16px]" />
-
-      {/* Sun glow */}
-      <div className="absolute right-[6%] top-8 h-52 w-52 rounded-full bg-[#FFD76A]/30 blur-3xl" />
-      <div className="absolute right-[10%] top-14 h-28 w-28 rounded-full bg-[#FFE9A5]/90" />
-      <div className="absolute right-[12%] top-16 h-20 w-20 rounded-full bg-[#FFF4CA]/90" />
-
-      {/* Light rays */}
-      <div className="absolute right-[2%] top-6 h-72 w-72 rounded-full bg-[conic-gradient(from_210deg_at_50%_50%,rgba(255,255,255,0.0),rgba(255,240,180,0.18),rgba(255,255,255,0.0),rgba(255,240,180,0.14),rgba(255,255,255,0.0))] blur-2xl" />
-
-      {/* Clouds */}
-      <div className="absolute left-[6%] top-12 h-12 w-36 rounded-full bg-white/35 blur-sm" />
-      <div className="absolute left-[11%] top-10 h-14 w-20 rounded-full bg-white/28 blur-sm" />
-      <div className="absolute left-[26%] top-20 h-9 w-24 rounded-full bg-white/20 blur-sm" />
-      <div className="absolute right-[32%] top-24 h-10 w-28 rounded-full bg-white/18 blur-sm" />
-      <div className="absolute right-[38%] top-19 h-8 w-16 rounded-full bg-white/16 blur-sm" />
-
-      {/* Distant blue-green haze */}
-      <div className="absolute bottom-44 left-0 h-16 w-full bg-[linear-gradient(to_bottom,rgba(133,153,114,0.12),rgba(133,153,114,0.28))] blur-md" />
-
-      {/* Mountains back */}
-      <div className="absolute bottom-44 left-[-6%] h-24 w-[32%] rounded-tr-[150px] bg-[#97A86D]/35" />
-      <div className="absolute bottom-46 left-[15%] h-28 w-[28%] rounded-t-[160px] bg-[#889A60]/35" />
-      <div className="absolute bottom-45 right-[18%] h-24 w-[26%] rounded-t-[130px] bg-[#8CA064]/32" />
-      <div className="absolute bottom-45 right-[-8%] h-28 w-[34%] rounded-tl-[160px] bg-[#7C9259]/35" />
-
-      {/* Mountains front */}
-      <div className="absolute bottom-38 left-[-4%] h-24 w-[38%] rounded-tr-[170px] bg-[#7E9155]/45" />
-      <div className="absolute bottom-38 left-[22%] h-20 w-[22%] rounded-t-[120px] bg-[#6F824A]/45" />
-      <div className="absolute bottom-38 right-[14%] h-22 w-[24%] rounded-t-[130px] bg-[#73884E]/42" />
-      <div className="absolute bottom-38 right-[-5%] h-24 w-[30%] rounded-tl-[150px] bg-[#6A7D46]/42" />
-
-      {/* Tree line */}
-      <div className="absolute bottom-34 left-0 h-10 w-full bg-[linear-gradient(to_right,#5F7442,#73874D,#617746)] opacity-70" />
-      <div className="absolute bottom-33 left-0 h-3 w-full bg-[repeating-linear-gradient(90deg,#4E6135_0px,#4E6135_10px,#647A43_10px,#647A43_18px)] opacity-40" />
-
-      {/* Far field */}
-      <div className="absolute bottom-24 left-0 h-24 w-full bg-[linear-gradient(to_bottom,#C8DE86,#98C85D)]" />
-
-      {/* Water strips in distance */}
-      <div className="absolute bottom-28 left-[6%] h-3 w-[14%] rounded-full bg-[#E7F1DA]/35 blur-[1px]" />
-      <div className="absolute bottom-26 left-[28%] h-3 w-[12%] rounded-full bg-[#EAF3DD]/30 blur-[1px]" />
-      <div className="absolute bottom-27 right-[18%] h-3 w-[16%] rounded-full bg-[#EEF6E5]/28 blur-[1px]" />
-
-      {/* Curved paddy lines */}
-      <div className="absolute bottom-20 left-[-10%] h-24 w-[52%] rounded-[100%] border-t-[14px] border-[#C3DE79]/75" />
-      <div className="absolute bottom-12 left-[4%] h-28 w-[56%] rounded-[100%] border-t-[16px] border-[#A8D863]/70" />
-      <div className="absolute bottom-16 right-[-8%] h-28 w-[56%] rounded-[100%] border-t-[16px] border-[#B8DE72]/68" />
-      <div className="absolute bottom-6 right-[7%] h-28 w-[46%] rounded-[100%] border-t-[13px] border-[#93CE53]/58" />
-
-      {/* Mid field fills */}
-      <div className="absolute bottom-0 left-0 h-36 w-full bg-[linear-gradient(to_bottom,#7CC04F_0%,#6CB047_42%,#5A963C_100%)]" />
-      <div className="absolute bottom-0 left-0 h-24 w-full opacity-70 bg-[repeating-linear-gradient(90deg,#73BA49_0px,#73BA49_78px,#67AE43_78px,#67AE43_156px)]" />
-
-      {/* Pilapil */}
-      
-
-      {/* Water reflection patches */}
-      <div className="absolute bottom-18 left-[7%] h-5 w-[22%] rounded-full bg-[#E8F3D9]/28 blur-[1px]" />
-      <div className="absolute bottom-12 left-[34%] h-5 w-[18%] rounded-full bg-[#EDF6E3]/24 blur-[1px]" />
-      <div className="absolute bottom-14 right-[10%] h-5 w-[20%] rounded-full bg-[#E7F1D8]/24 blur-[1px]" />
-
-      {/* Bahay kubo */}
-      <div className="absolute bottom-28 right-[18%] opacity-75">
-        <div className="relative h-24 w-28">
-          <div className="absolute left-5 top-2 h-0 w-0 border-l-[22px] border-r-[22px] border-b-[18px] border-l-transparent border-r-transparent border-b-[#70461F]" />
-          <div className="absolute left-2 top-[17px] h-0 w-0 border-l-[30px] border-r-[30px] border-b-[20px] border-l-transparent border-r-transparent border-b-[#8B5A2B]" />
-          <div className="absolute left-4 top-9 h-10 w-16 rounded-[2px] bg-[#84552D]" />
-          <div className="absolute left-7 top-12 h-7 w-4 bg-[#6A4424]" />
-          <div className="absolute left-6 top-[50px] h-[34px] w-[2px] bg-[#593A1E]" />
-          <div className="absolute left-18 top-[50px] h-[34px] w-[2px] bg-[#593A1E]" />
-          <div className="absolute left-3 top-[40px] h-[2px] w-[18px] bg-[#A87847]/70" />
-          <div className="absolute right-2 top-[40px] h-[2px] w-[18px] bg-[#A87847]/70" />
-        </div>
-      </div>
-
-      {/* Left coconut tree */}
-      <div className="absolute bottom-30 left-[10%] opacity-65">
-        <div className="relative h-28 w-20">
-          <div className="absolute bottom-0 left-9 h-24 w-[4px] rotate-[9deg] rounded-full bg-[#6D4826]" />
-          <div className="absolute left-1 top-4 h-12 w-16 rounded-full border-t-[12px] border-[#4E8D3F] rotate-[-34deg]" />
-          <div className="absolute left-5 top-0 h-12 w-16 rounded-full border-t-[12px] border-[#4B893B] rotate-[3deg]" />
-          <div className="absolute left-8 top-5 h-12 w-16 rounded-full border-t-[12px] border-[#579845] rotate-[36deg]" />
-          <div className="absolute left-2 top-8 h-12 w-16 rounded-full border-t-[10px] border-[#5C9D48] rotate-[-8deg]" />
-        </div>
-      </div>
-
-      {/* Right coconut tree */}
-      <div className="absolute bottom-28 right-[7%] opacity-60">
-        <div className="relative h-32 w-20">
-          <div className="absolute bottom-0 left-9 h-28 w-[4px] -rotate-[10deg] rounded-full bg-[#694624]" />
-          <div className="absolute left-0 top-6 h-12 w-16 rounded-full border-t-[12px] border-[#4D8B3E] rotate-[-38deg]" />
-          <div className="absolute left-4 top-2 h-12 w-16 rounded-full border-t-[12px] border-[#4B893A] rotate-[0deg]" />
-          <div className="absolute left-8 top-7 h-12 w-16 rounded-full border-t-[12px] border-[#599746] rotate-[35deg]" />
-          <div className="absolute left-3 top-10 h-12 w-16 rounded-full border-t-[10px] border-[#62A14D] rotate-[-6deg]" />
-        </div>
-      </div>
-
-      {/* Banana leaf silhouette near kubo */}
-      <div className="absolute bottom-24 right-[29%] opacity-45">
-        <div className="relative h-20 w-20">
-          <div className="absolute bottom-0 left-9 h-12 w-[2px] bg-[#5B7E3F]" />
-          <div className="absolute left-1 top-3 h-10 w-12 rounded-full border-t-[12px] border-[#6FA553] rotate-[-28deg]" />
-          <div className="absolute left-7 top-0 h-10 w-12 rounded-full border-t-[12px] border-[#629B49] rotate-[18deg]" />
-        </div>
-      </div>
-
-      {/* Left foreground rice */}
-      <div className="absolute bottom-6 left-[1.5%] flex items-end gap-[4px] opacity-95">
-        {Array.from({ length: 22 }).map((_, i) => (
-          <div
-            key={`left-rice-${i}`}
-            className="relative"
-            style={{ transform: `rotate(${i % 2 === 0 ? -13 : 9}deg)` }}
-          >
-            <span
-              className="block w-[3px] rounded-full bg-[#3D7B2E]"
-              style={{ height: `${48 + (i % 6) * 8}px` }}
-            />
-            <span className="absolute right-[-7px] top-[8px] h-4 w-2 rounded-full bg-[#E8CB63]/90 rotate-[26deg]" />
-            <span className="absolute right-[-9px] top-[15px] h-4 w-2 rounded-full bg-[#E2C24D]/85 rotate-[30deg]" />
-            <span className="absolute right-[-8px] top-[22px] h-4 w-2 rounded-full bg-[#E7CD69]/80 rotate-[24deg]" />
-            <span className="absolute right-[-7px] top-[29px] h-4 w-2 rounded-full bg-[#DDBB43]/75 rotate-[20deg]" />
-            <span className="absolute right-[-6px] top-[36px] h-4 w-2 rounded-full bg-[#E7CB61]/70 rotate-[16deg]" />
-          </div>
-        ))}
-      </div>
-
-      {/* Right foreground rice */}
-      <div className="absolute bottom-6 right-[1.5%] flex items-end gap-[4px] opacity-95">
-        {Array.from({ length: 24 }).map((_, i) => (
-          <div
-            key={`right-rice-${i}`}
-            className="relative"
-            style={{ transform: `rotate(${i % 2 === 0 ? 12 : -9}deg)` }}
-          >
-            <span
-              className="block w-[3px] rounded-full bg-[#3F7A2D]"
-              style={{ height: `${50 + (i % 5) * 9}px` }}
-            />
-            <span className="absolute left-[-8px] top-[8px] h-4 w-2 rounded-full bg-[#E8CC62]/90 -rotate-[24deg]" />
-            <span className="absolute left-[-10px] top-[16px] h-4 w-2 rounded-full bg-[#E0C04A]/85 -rotate-[28deg]" />
-            <span className="absolute left-[-9px] top-[24px] h-4 w-2 rounded-full bg-[#E9D172]/80 -rotate-[20deg]" />
-            <span className="absolute left-[-8px] top-[32px] h-4 w-2 rounded-full bg-[#DDBD47]/75 -rotate-[18deg]" />
-            <span className="absolute left-[-7px] top-[40px] h-4 w-2 rounded-full bg-[#E8CC63]/68 -rotate-[14deg]" />
-          </div>
-        ))}
-      </div>
-
-      {/* Mid foreground depth grass */}
-      <div className="absolute bottom-3 left-1/2 flex -translate-x-1/2 items-end gap-[3px] opacity-60">
-        {Array.from({ length: 30 }).map((_, i) => (
-          <span
-            key={`mid-depth-${i}`}
-            className="block w-[2px] rounded-full bg-[#4E8C39]"
-            style={{
-              height: `${14 + (i % 6) * 5}px`,
-              transform: `rotate(${i % 2 === 0 ? -8 : 8}deg)`,
-            }}
-          />
-        ))}
-      </div>
-
-      {/* Decorative vignette for depth */}
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_45%,rgba(94,68,28,0.10)_100%)]" />
-
-      {/* Readability overlay */}
-      <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(246,238,220,0.96)_0%,rgba(246,238,220,0.9)_32%,rgba(246,238,220,0.62)_68%,rgba(246,238,220,0.76)_100%)]" />
-    </div>
-  )}
-
-  {/* Content */}
-  <div className="container relative z-10 mx-auto px-4 py-10 lg:py-14">
-    <div className="max-w-4xl space-y-5">
-      <WoodSign>
-        {marketMode === "products" ? "Sibol Marketplace" : "Harvest Investment"}
-      </WoodSign>
-
-      <div className="space-y-3">
-        <h1 className="text-3xl font-black tracking-tight sm:text-4xl lg:text-5xl text-[#2F1F10]">
-          {marketMode === "products"
-            ? "Direct buying from cooperatives and farmers"
-            : "Fund real harvests and earn from net profit"}
-        </h1>
-
-        <p className="max-w-2xl text-[#694F33] text-sm sm:text-base leading-relaxed">
-          {marketMode === "products"
-            ? "Browse rice and other agricultural products with clearer pricing, visible origin, and a more direct farm-to-buyer flow."
-            : "Support harvest campaigns with small investments. Returns come from actual net profit after the harvest is sold — not fixed guaranteed ROI."}
-        </p>
-      </div>
-
-      <div className="flex flex-wrap gap-3 pt-2 text-sm">
-        {marketMode === "products" ? (
+        {/* Filipino Rice Field Background - ONLY for harvests (unchanged) */}
+        {marketMode === "harvests" && (
           <>
-            <div className="inline-flex items-center gap-2 rounded-full border border-[#B8D6B3] bg-[#E9F6E5] px-3 py-2 font-medium text-[#2E6C3C] shadow-sm">
-              <ShieldCheck className="h-4 w-4" />
-              Verified cooperative listings
-            </div>
+            <style>{`
+              /* ── Atmosphere ── */
+              @keyframes sky-shift {
+                0%,100% { opacity: 1; }
+                50%      { opacity: 0.82; }
+              }
+              @keyframes sun-breathe {
+                0%,100% { transform: scale(1);   opacity: 0.92; }
+                50%      { transform: scale(1.07); opacity: 1; }
+              }
+              @keyframes ray-spin {
+                from { transform: rotate(0deg); }
+                to   { transform: rotate(360deg); }
+              }
+              @keyframes sun-corona {
+                0%,100% { transform: scale(1);   opacity: 0.18; }
+                50%      { transform: scale(1.22); opacity: 0.28; }
+              }
 
-            <div className="inline-flex items-center gap-2 rounded-full border border-[#E5C97B] bg-[#FFF0BF] px-3 py-2 font-medium text-[#7A5618] shadow-sm">
-              <MapPin className="h-4 w-4" />
-              Visible source location
-            </div>
+              /* ── Clouds ── */
+              @keyframes drift-a {
+                0%   { transform: translateX(0px); }
+                100% { transform: translateX(-420px); }
+              }
+              @keyframes drift-b {
+                0%   { transform: translateX(0px); }
+                100% { transform: translateX(-320px); }
+              }
+              @keyframes drift-c {
+                0%   { transform: translateX(180px); }
+                100% { transform: translateX(-280px); }
+              }
+              @keyframes cloud-bob {
+                0%,100% { transform: translateY(0); }
+                50%      { transform: translateY(-4px); }
+              }
 
-            <div className="inline-flex items-center gap-2 rounded-full border border-[#D8C7A0] bg-[#FFF8E7] px-3 py-2 font-medium text-[#694F33] shadow-sm">
-              <Store className="h-4 w-4" />
-              Direct and pooled orders
-            </div>
-          </>
-        ) : (
-          <>
-            <div className="inline-flex items-center gap-2 rounded-full border border-[#B8D6B3] bg-[#E9F6E5] px-3 py-2 font-medium text-[#2E6C3C] shadow-sm">
-              <Sprout className="h-4 w-4" />
-              Farm funding from ₱500
-            </div>
+              /* ── Rice stalks ── */
+              @keyframes sway-left {
+                0%,100% { transform-origin: bottom center; transform: rotate(-12deg); }
+                50%      { transform-origin: bottom center; transform: rotate(-5deg); }
+              }
+              @keyframes sway-right {
+                0%,100% { transform-origin: bottom center; transform: rotate(8deg); }
+                50%      { transform-origin: bottom center; transform: rotate(14deg); }
+              }
+              @keyframes sway-gentle {
+                0%,100% { transform-origin: bottom center; transform: rotate(-4deg); }
+                50%      { transform-origin: bottom center; transform: rotate(4deg); }
+              }
+              @keyframes sway-mid {
+                0%,100% { transform-origin: bottom center; transform: rotate(-8deg); }
+                50%      { transform-origin: bottom center; transform: rotate(6deg); }
+              }
 
-            <div className="inline-flex items-center gap-2 rounded-full border border-[#E5C97B] bg-[#FFF0BF] px-3 py-2 font-medium text-[#7A5618] shadow-sm">
-              <TrendingUp className="h-4 w-4" />
-              Profit-sharing model
-            </div>
+              /* ── Water shimmer ── */
+              @keyframes shimmer {
+                0%,100% { opacity: 0.22; transform: scaleX(1); }
+                50%      { opacity: 0.38; transform: scaleX(1.04); }
+              }
+              @keyframes shimmer-b {
+                0%,100% { opacity: 0.18; transform: scaleX(1.02); }
+                50%      { opacity: 0.30; transform: scaleX(0.97); }
+              }
 
-            <div className="inline-flex items-center gap-2 rounded-full border border-[#D8C7A0] bg-[#FFF8E7] px-3 py-2 font-medium text-[#694F33] shadow-sm">
-              <Wallet className="h-4 w-4" />
-              No fixed guaranteed payout
+              /* ── Paddy lines ── */
+              @keyframes paddy-rise {
+                from { opacity: 0; transform: translateY(12px); }
+                to   { opacity: 1; transform: translateY(0); }
+              }
+
+              /* ── Haze shimmer ── */
+              @keyframes haze-pulse {
+                0%,100% { opacity: 0.45; }
+                50%      { opacity: 0.62; }
+              }
+
+              /* ── Firefly-like light motes ── */
+              @keyframes mote-a {
+                0%   { transform: translate(0,0);      opacity: 0; }
+                20%  { opacity: 0.7; }
+                80%  { opacity: 0.5; }
+                100% { transform: translate(18px,-24px); opacity: 0; }
+              }
+              @keyframes mote-b {
+                0%   { transform: translate(0,0);       opacity: 0; }
+                25%  { opacity: 0.55; }
+                75%  { opacity: 0.4; }
+                100% { transform: translate(-14px,-20px); opacity: 0; }
+              }
+
+              /* Stalk helpers */
+              .stalk-l { animation: sway-left  3.4s ease-in-out infinite; }
+              .stalk-r { animation: sway-right 3.1s ease-in-out infinite; }
+              .stalk-g { animation: sway-gentle 4.2s ease-in-out infinite; }
+              .stalk-m { animation: sway-mid  3.8s ease-in-out infinite; }
+            `}</style>
+
+            <div className="pointer-events-none absolute inset-0 w-full h-full overflow-hidden">
+              {/* ── 1. SKY GRADIENT ── */}
+              <div
+                className="absolute inset-0"
+                style={{
+                  background: "linear-gradient(to bottom, #FFF3D6 0%, #FFE8A8 18%, #F9D87A 42%, #E8C25A 66%, #D4A93E 84%, #C09232 100%)",
+                  animation: "sky-shift 14s ease-in-out infinite",
+                }}
+              />
+              {/* Subtle grain texture */}
+              <div
+                className="absolute inset-0 opacity-[0.045]"
+                style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E\")", backgroundRepeat: "repeat" }}
+              />
+              {/* ── 2. SUN SYSTEM ── */}
+              <div
+                className="absolute"
+                style={{
+                  right: "7%", top: "6%",
+                  width: 220, height: 220,
+                  borderRadius: "50%",
+                  background: "radial-gradient(circle, rgba(255,220,80,0.32) 0%, rgba(255,180,30,0.12) 55%, transparent 75%)",
+                  animation: "sun-corona 6s ease-in-out infinite",
+                }}
+              />
+              <div
+                className="absolute"
+                style={{
+                  right: "9.5%", top: "7.5%",
+                  width: 160, height: 160,
+                  borderRadius: "50%",
+                  background: "conic-gradient(from 0deg, transparent 0deg, rgba(255,240,140,0.22) 18deg, transparent 36deg, rgba(255,240,140,0.18) 54deg, transparent 72deg, rgba(255,240,140,0.20) 90deg, transparent 108deg, rgba(255,240,140,0.16) 126deg, transparent 144deg, rgba(255,240,140,0.22) 162deg, transparent 180deg, rgba(255,240,140,0.18) 198deg, transparent 216deg, rgba(255,240,140,0.20) 234deg, transparent 252deg, rgba(255,240,140,0.16) 270deg, transparent 288deg, rgba(255,240,140,0.18) 306deg, transparent 324deg, rgba(255,240,140,0.22) 342deg, transparent 360deg)",
+                  filter: "blur(3px)",
+                  animation: "ray-spin 28s linear infinite",
+                }}
+              />
+              <div
+                className="absolute"
+                style={{
+                  right: "11%", top: "10%",
+                  width: 88, height: 88,
+                  borderRadius: "50%",
+                  background: "radial-gradient(circle at 38% 36%, #FFFBE0 0%, #FFE566 38%, #FFD020 75%, #F5B800 100%)",
+                  boxShadow: "0 0 48px 18px rgba(255,210,50,0.45), 0 0 18px 4px rgba(255,240,160,0.7)",
+                  animation: "sun-breathe 5s ease-in-out infinite",
+                }}
+              />
+              <div
+                className="absolute"
+                style={{
+                  right: "12.8%", top: "11.8%",
+                  width: 36, height: 36,
+                  borderRadius: "50%",
+                  background: "radial-gradient(circle, rgba(255,255,220,0.95) 0%, rgba(255,250,200,0.4) 70%, transparent 100%)",
+                }}
+              />
+              <div
+                className="absolute"
+                style={{
+                  right: 0, top: 0,
+                  width: "55%", height: "70%",
+                  background: "radial-gradient(ellipse at 90% 15%, rgba(255,224,80,0.18) 0%, rgba(255,200,60,0.07) 45%, transparent 70%)",
+                  filter: "blur(8px)",
+                }}
+              />
+              {/* ── 3. CLOUDS ── */}
+              <div className="absolute" style={{ top: "8%", left: "4%", animation: "drift-a 55s linear infinite, cloud-bob 8s ease-in-out infinite" }}>
+                <div style={{ position: "relative", width: 180, height: 52 }}>
+                  <div style={{ position: "absolute", bottom: 0, left: 20, width: 140, height: 32, borderRadius: 99, background: "rgba(255,255,255,0.58)", filter: "blur(2px)" }} />
+                  <div style={{ position: "absolute", bottom: 10, left: 8,  width: 80,  height: 34, borderRadius: 99, background: "rgba(255,255,255,0.52)", filter: "blur(2px)" }} />
+                  <div style={{ position: "absolute", bottom: 14, left: 52, width: 70,  height: 38, borderRadius: 99, background: "rgba(255,255,255,0.48)", filter: "blur(1.5px)" }} />
+                  <div style={{ position: "absolute", bottom: 2,  left: 60, width: 60,  height: 24, borderRadius: 99, background: "rgba(255,255,255,0.38)", filter: "blur(1px)" }} />
+                </div>
+              </div>
+              <div className="absolute" style={{ top: "5%", left: "32%", animation: "drift-b 72s linear infinite 8s, cloud-bob 11s ease-in-out infinite 2s" }}>
+                <div style={{ position: "relative", width: 120, height: 38 }}>
+                  <div style={{ position: "absolute", bottom: 0, left: 10, width: 100, height: 24, borderRadius: 99, background: "rgba(255,255,255,0.44)", filter: "blur(1.5px)" }} />
+                  <div style={{ position: "absolute", bottom: 8,  left: 4,  width: 50,  height: 28, borderRadius: 99, background: "rgba(255,255,255,0.40)", filter: "blur(1.5px)" }} />
+                  <div style={{ position: "absolute", bottom: 10, left: 36, width: 60,  height: 30, borderRadius: 99, background: "rgba(255,255,255,0.38)", filter: "blur(1px)" }} />
+                </div>
+              </div>
+              <div className="absolute" style={{ top: "14%", right: "28%", animation: "drift-c 80s linear infinite 4s, cloud-bob 9s ease-in-out infinite 5s" }}>
+                <div style={{ position: "relative", width: 100, height: 30 }}>
+                  <div style={{ position: "absolute", bottom: 0, left: 0,  width: 90,  height: 18, borderRadius: 99, background: "rgba(255,255,240,0.35)", filter: "blur(2px)" }} />
+                  <div style={{ position: "absolute", bottom: 6, left: 18, width: 50,  height: 22, borderRadius: 99, background: "rgba(255,255,240,0.30)", filter: "blur(1.5px)" }} />
+                </div>
+              </div>
+              {/* ── 4. DISTANT HAZE ── */}
+              <div
+                className="absolute"
+                style={{
+                  bottom: "46%", left: 0, right: 0, height: 40,
+                  background: "linear-gradient(to bottom, transparent, rgba(180,200,140,0.22), transparent)",
+                  filter: "blur(6px)",
+                  animation: "haze-pulse 9s ease-in-out infinite",
+                }}
+              />
+              {/* ── 5. MOUNTAINS ── */}
+              <div className="absolute" style={{ bottom: "43%", left: "-5%", width: "30%", height: 110, borderTopRightRadius: 180, background: "linear-gradient(to bottom, #A8BC7C, #7E9958)", opacity: 0.30, filter: "blur(4px)" }} />
+              <div className="absolute" style={{ bottom: "44%", left: "14%",  width: "26%", height: 120, borderTopLeftRadius: 160, borderTopRightRadius: 170, background: "linear-gradient(to bottom, #9BB170, #738C50)", opacity: 0.30, filter: "blur(4px)" }} />
+              <div className="absolute" style={{ bottom: "43%", right: "16%", width: "24%", height: 108, borderTopLeftRadius: 150, borderTopRightRadius: 140, background: "linear-gradient(to bottom, #A0B876, #779563)", opacity: 0.28, filter: "blur(4px)" }} />
+              <div className="absolute" style={{ bottom: "43%", right: "-6%", width: "32%", height: 115, borderTopLeftRadius: 170, background: "linear-gradient(to bottom, #96AC6C, #6E8A4C)", opacity: 0.30, filter: "blur(4px)" }} />
+              <div className="absolute" style={{ bottom: "37%", left: "-3%",  width: "36%", height: 100, borderTopRightRadius: 190, background: "linear-gradient(to bottom, #8FA660, #627840)", opacity: 0.55, filter: "blur(1.5px)" }} />
+              <div className="absolute" style={{ bottom: "37%", left: "20%",  width: "22%", height: 88,  borderTopLeftRadius: 130, borderTopRightRadius: 120, background: "linear-gradient(to bottom, #82994E, #5C7238)", opacity: 0.52, filter: "blur(1px)" }} />
+              <div className="absolute" style={{ bottom: "37%", right: "12%", width: "26%", height: 95,  borderTopLeftRadius: 140, borderTopRightRadius: 145, background: "linear-gradient(to bottom, #879C58, #61783C)", opacity: 0.50, filter: "blur(1px)" }} />
+              <div className="absolute" style={{ bottom: "37%", right: "-4%", width: "30%", height: 102, borderTopLeftRadius: 160, background: "linear-gradient(to bottom, #7C9154, #566C36)", opacity: 0.52, filter: "blur(1px)" }} />
+              {/* Mountain caps */}
+              <div className="absolute" style={{ bottom: "52%", left: "9%",  width: "9%",  height: 18, borderRadius: 99, background: "rgba(255,255,240,0.40)", filter: "blur(3px)" }} />
+              <div className="absolute" style={{ bottom: "53%", left: "28%", width: "8%",  height: 16, borderRadius: 99, background: "rgba(255,255,240,0.35)", filter: "blur(3px)" }} />
+              <div className="absolute" style={{ bottom: "52%", right: "18%",width: "8%",  height: 16, borderRadius: 99, background: "rgba(255,255,240,0.32)", filter: "blur(3px)" }} />
+              {/* ── 6. TREE LINE ── */}
+              <div
+                className="absolute"
+                style={{
+                  bottom: "33%", left: 0, right: 0, height: 44,
+                  background: "linear-gradient(to right, #506938, #627D45, #547040, #4E6636, #5C7342)",
+                  opacity: 0.82,
+                }}
+              />
+              {/* ── 7. PADDY TERRACES ── */}
+              <div className="absolute" style={{ bottom: "22%", left: 0, right: 0, height: 52, background: "linear-gradient(to bottom, #ADDA7A, #8DC85A)", opacity: 0.88, animation: "paddy-rise 1.4s ease both 0.3s" }} />
+              <div className="absolute" style={{ bottom: "25%", left: "8%", width: "20%", height: 8, borderRadius: 99, background: "rgba(220,238,200,0.55)", filter: "blur(2px)", animation: "shimmer 4s ease-in-out infinite" }} />
+              <div className="absolute" style={{ bottom: "24%", left: "34%",width: "16%", height: 7, borderRadius: 99, background: "rgba(224,240,205,0.48)", filter: "blur(2px)", animation: "shimmer-b 5.5s ease-in-out infinite 1.2s" }} />
+              <div className="absolute" style={{ bottom: "24%", right: "12%",width: "18%", height: 7, borderRadius: 99, background: "rgba(218,236,198,0.44)", filter: "blur(2px)", animation: "shimmer 6s ease-in-out infinite 2s" }} />
+              <div className="absolute" style={{ bottom: "21%", left: 0, right: 0, height: 5, background: "#7A6040", opacity: 0.55 }} />
+              <div className="absolute" style={{ bottom: "10%", left: 0, right: 0, height: 58, background: "linear-gradient(to bottom, #98CC60, #76B044)", opacity: 0.92, animation: "paddy-rise 1.4s ease both 0.55s" }} />
+              <div className="absolute" style={{ bottom: "14%", left: "12%", width: "24%", height: 9, borderRadius: 99, background: "rgba(200,230,170,0.50)", filter: "blur(2px)", animation: "shimmer-b 5s ease-in-out infinite 0.5s" }} />
+              <div className="absolute" style={{ bottom: "13%", right: "18%", width: "20%", height: 8, borderRadius: 99, background: "rgba(205,232,175,0.45)", filter: "blur(2px)", animation: "shimmer 4.8s ease-in-out infinite 1.8s" }} />
+              <div className="absolute" style={{ bottom: "9.5%", left: 0, right: 0, height: 5, background: "#6E5530", opacity: 0.50 }} />
+              {/* ── 8. CURVED PADDY CONTOUR LINES ── */}
+              <svg className="absolute inset-0 w-full h-full" viewBox="0 0 1000 400" preserveAspectRatio="none" style={{ opacity: 0.42 }}>
+                <ellipse cx="320" cy="340" rx="380" ry="48" fill="none" stroke="#B8DC78" strokeWidth="14" strokeLinecap="round" opacity="0.7"/>
+                <ellipse cx="680" cy="310" rx="340" ry="44" fill="none" stroke="#ACCF6E" strokeWidth="13" strokeLinecap="round" opacity="0.65"/>
+                <ellipse cx="480" cy="368" rx="460" ry="52" fill="none" stroke="#A2C962" strokeWidth="15" strokeLinecap="round" opacity="0.58"/>
+                <ellipse cx="200" cy="290" rx="280" ry="38" fill="none" stroke="#BAE07C" strokeWidth="11" strokeLinecap="round" opacity="0.50"/>
+                <ellipse cx="820" cy="280" rx="260" ry="36" fill="none" stroke="#AEDA70" strokeWidth="11" strokeLinecap="round" opacity="0.48"/>
+              </svg>
+              {/* ── 9. FOREGROUND – BASE SOIL ── */}
+              <div className="absolute bottom-0 left-0 right-0 h-[10%]" style={{ background: "linear-gradient(to bottom, #6CB040, #58963A)", opacity: 0.98 }} />
+              <div className="absolute bottom-0 left-0 right-0 h-[6%]" style={{ background: "repeating-linear-gradient(90deg, #63AA3C 0px, #63AA3C 76px, #5A9E36 76px, #5A9E36 152px)" }} />
+              {/* ── 10. BAHAY KUBO ── */}
+              <div className="absolute" style={{ bottom: "29%", right: "17%", opacity: 0.82 }}>
+                <svg width="72" height="80" viewBox="0 0 72 80" fill="none">
+                  <ellipse cx="36" cy="78" rx="28" ry="5" fill="rgba(60,35,10,0.22)" />
+                  <polygon points="36,4 62,28 10,28" fill="#7A4A1C"/>
+                  <polygon points="36,16 68,40 4,40" fill="#9A6030"/>
+                  <line x1="36" y1="4" x2="36" y2="16" stroke="#6A3E18" strokeWidth="2"/>
+                  <rect x="12" y="39" width="48" height="32" fill="#8C5528" rx="2"/>
+                  <rect x="30" y="52" width="12" height="19" fill="#6A3E1A" rx="2"/>
+                  <rect x="16" y="46" width="10" height="9" fill="#6A3E1A" rx="1"/>
+                  <line x1="21" y1="46" x2="21" y2="55" stroke="#8C5528" strokeWidth="1"/>
+                  <line x1="16" y1="50.5" x2="26" y2="50.5" stroke="#8C5528" strokeWidth="1"/>
+                  <rect x="46" y="46" width="10" height="9" fill="#6A3E1A" rx="1"/>
+                  <line x1="51" y1="46" x2="51" y2="55" stroke="#8C5528" strokeWidth="1"/>
+                  <line x1="46" y1="50.5" x2="56" y2="50.5" stroke="#8C5528" strokeWidth="1"/>
+                  <rect x="16" y="70" width="4" height="8" fill="#5C3416"/>
+                  <rect x="52" y="70" width="4" height="8" fill="#5C3416"/>
+                  <line x1="24" y1="28" x2="36" y2="16" stroke="rgba(255,200,120,0.18)" strokeWidth="1"/>
+                  <line x1="48" y1="28" x2="36" y2="16" stroke="rgba(255,200,120,0.18)" strokeWidth="1"/>
+                  <line x1="18" y1="38" x2="36" y2="16" stroke="rgba(255,200,120,0.14)" strokeWidth="1"/>
+                  <line x1="54" y1="38" x2="36" y2="16" stroke="rgba(255,200,120,0.14)" strokeWidth="1"/>
+                </svg>
+              </div>
+              {/* ── 11. COCONUT TREES ── */}
+              <div className="absolute" style={{ bottom: "28%", left: "9%", opacity: 0.72 }}>
+                <svg width="54" height="100" viewBox="0 0 54 100" fill="none">
+                  <path d="M28,98 Q26,80 29,60 Q31,42 27,8" stroke="#6E4A22" strokeWidth="4.5" strokeLinecap="round" fill="none"/>
+                  <path d="M27,10 Q8,-4 -4,10"  stroke="#4E8D3C" strokeWidth="3" fill="none" strokeLinecap="round"/>
+                  <path d="M27,10 Q14,-8 20,16" stroke="#568F40" strokeWidth="3" fill="none" strokeLinecap="round"/>
+                  <path d="M27,10 Q40,-6 52,8"  stroke="#4C8838" strokeWidth="3" fill="none" strokeLinecap="round"/>
+                  <path d="M27,10 Q36,4 48,18"  stroke="#549040" strokeWidth="2.5" fill="none" strokeLinecap="round"/>
+                  <path d="M27,10 Q10,8 2,24"   stroke="#4A8836" strokeWidth="2.5" fill="none" strokeLinecap="round"/>
+                  <circle cx="22" cy="14" r="3" fill="#9B6B2A" opacity="0.9"/>
+                  <circle cx="29" cy="12" r="2.5" fill="#9B6B2A" opacity="0.8"/>
+                </svg>
+              </div>
+              <div className="absolute" style={{ bottom: "27%", right: "6%", opacity: 0.68 }}>
+                <svg width="54" height="112" viewBox="0 0 54 112" fill="none">
+                  <path d="M24,110 Q26,90 23,70 Q21,50 25,8" stroke="#694420" strokeWidth="4.5" strokeLinecap="round" fill="none"/>
+                  <path d="M25,10 Q6,0 -2,14"   stroke="#4D8C3B" strokeWidth="3" fill="none" strokeLinecap="round"/>
+                  <path d="M25,10 Q12,-6 18,18"  stroke="#558E3E" strokeWidth="3" fill="none" strokeLinecap="round"/>
+                  <path d="M25,10 Q38,-4 50,10"  stroke="#4B8937" strokeWidth="3" fill="none" strokeLinecap="round"/>
+                  <path d="M25,10 Q34,6 46,20"   stroke="#539040" strokeWidth="2.5" fill="none" strokeLinecap="round"/>
+                  <path d="M25,10 Q8,10 0,26"    stroke="#4A8836" strokeWidth="2.5" fill="none" strokeLinecap="round"/>
+                  <circle cx="21" cy="14" r="3" fill="#9A6828" opacity="0.85"/>
+                  <circle cx="27" cy="11" r="2.5" fill="#9A6828" opacity="0.8"/>
+                </svg>
+              </div>
+              {/* ── 12. RICE STALKS ── */}
+              <div className="absolute bottom-0 left-0 right-0 h-[14%]">
+                {Array.from({ length: 180 }).map((_, i) => {
+                  const left = Math.random() * 100;
+                  const height = 55 + Math.random() * 55;
+                  const cls = ["stalk-l","stalk-r","stalk-g","stalk-m"][Math.floor(Math.random() * 4)];
+                  const delay = `${Math.random() * 2}s`;
+                  return (
+                    <div
+                      key={i}
+                      className={`absolute ${cls}`}
+                      style={{
+                        left: `${left}%`,
+                        bottom: 0,
+                        transform: "translateX(-50%)",
+                        animationDelay: delay,
+                      }}
+                    >
+                      <div
+                        style={{
+                          width: 3,
+                          height: height,
+                          borderRadius: 99,
+                          background: "linear-gradient(to top, #3D6B28, #5AAA3C)",
+                        }}
+                      />
+                      <div
+                        style={{
+                          position: "absolute",
+                          top: 2,
+                          left: -6,
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: 1,
+                        }}
+                      >
+                        {[0, 1, 2, 3, 4].map((j) => (
+                          <div
+                            key={j}
+                            style={{
+                              width: 8,
+                              height: 14,
+                              borderRadius: "40% 60% 60% 40% / 50% 50% 70% 30%",
+                              background: `rgba(${220 - j * 8}, ${185 - j * 5}, ${50 + j * 4}, ${
+                                0.88 - j * 0.05
+                              })`,
+                              transform: `rotate(${22 + j * 3}deg) translateX(${
+                                j % 2 === 0 ? 2 : -1
+                              }px)`,
+                            }}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              {/* ── 13. LIGHT MOTES ── */}
+              {[
+                { x:"18%", y:"55%", a:"mote-a", d:"0s",   s:"5s"  },
+                { x:"32%", y:"62%", a:"mote-b", d:"1.4s",  s:"6.5s" },
+                { x:"54%", y:"58%", a:"mote-a", d:"2.8s",  s:"5.8s" },
+                { x:"68%", y:"65%", a:"mote-b", d:"0.6s",  s:"7s"  },
+                { x:"80%", y:"52%", a:"mote-a", d:"3.5s",  s:"5.2s" },
+                { x:"44%", y:"70%", a:"mote-b", d:"1.9s",  s:"6.2s" },
+              ].map((m,i) => (
+                <div key={i} className="absolute" style={{
+                  left: m.x, top: m.y,
+                  width: 4, height: 4, borderRadius: "50%",
+                  background: "rgba(255,220,80,0.8)",
+                  filter: "blur(1px)",
+                  animation: `${m.a} ${m.s} ease-in-out infinite ${m.d}`,
+                }} />
+              ))}
+              {/* ── 14. DEPTH VIGNETTE ── */}
+              <div className="absolute inset-0" style={{ background: "radial-gradient(ellipse at 50% 50%, transparent 40%, rgba(80,50,10,0.14) 100%)" }} />
+              {/* ── 15. READABILITY OVERLAY ── */}
+              <div
+                className="absolute inset-0"
+                style={{
+                  background: "linear-gradient(to right, rgba(246,238,220,0.97) 0%, rgba(246,238,220,0.92) 28%, rgba(246,238,220,0.55) 62%, rgba(246,238,220,0.72) 100%)",
+                }}
+              />
             </div>
           </>
         )}
-      </div>
-    </div>
-  </div>
-</header>
+
+        {/* Content */}
+        <div className="container relative z-10 mx-auto px-4 py-10 lg:py-14">
+          <div className="max-w-4xl space-y-5">
+            <WoodSign>
+              {marketMode === "products" ? "Sibol Marketplace" : "Harvest Investment"}
+            </WoodSign>
+
+            <div className="space-y-3">
+              <h1 className="text-3xl font-black tracking-tight sm:text-4xl lg:text-5xl text-[#2F1F10]">
+                {marketMode === "products"
+                  ? "Direct buying from cooperatives and farmers"
+                  : "Fund real harvests and earn from net profit"}
+              </h1>
+
+              <p className="max-w-2xl text-[#694F33] text-sm sm:text-base leading-relaxed">
+                {marketMode === "products"
+                  ? "Browse rice and other agricultural products with clearer pricing, visible origin, and a more direct farm-to-buyer flow."
+                  : "Support harvest campaigns with small investments. Returns come from actual net profit after the harvest is sold — not fixed guaranteed ROI."}
+              </p>
+            </div>
+
+            <div className="flex flex-wrap gap-3 pt-2 text-sm">
+              {marketMode === "products" ? (
+                <>
+                  <div className="inline-flex items-center gap-2 rounded-full border border-[#B8D6B3] bg-[#E9F6E5] px-3 py-2 font-medium text-[#2E6C3C] shadow-sm">
+                    <ShieldCheck className="h-4 w-4" />
+                    Verified cooperative listings
+                  </div>
+
+                  <div className="inline-flex items-center gap-2 rounded-full border border-[#E5C97B] bg-[#FFF0BF] px-3 py-2 font-medium text-[#7A5618] shadow-sm">
+                    <MapPin className="h-4 w-4" />
+                    Visible source location
+                  </div>
+
+                  <div className="inline-flex items-center gap-2 rounded-full border border-[#D8C7A0] bg-[#FFF8E7] px-3 py-2 font-medium text-[#694F33] shadow-sm">
+                    <Store className="h-4 w-4" />
+                    Direct and pooled orders
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="inline-flex items-center gap-2 rounded-full border border-[#B8D6B3] bg-[#E9F6E5] px-3 py-2 font-medium text-[#2E6C3C] shadow-sm">
+                    <Sprout className="h-4 w-4" />
+                    Farm funding from ₱500
+                  </div>
+
+                  <div className="inline-flex items-center gap-2 rounded-full border border-[#E5C97B] bg-[#FFF0BF] px-3 py-2 font-medium text-[#7A5618] shadow-sm">
+                    <TrendingUp className="h-4 w-4" />
+                    Profit-sharing model
+                  </div>
+
+                  <div className="inline-flex items-center gap-2 rounded-full border border-[#D8C7A0] bg-[#FFF8E7] px-3 py-2 font-medium text-[#694F33] shadow-sm">
+                    <Wallet className="h-4 w-4" />
+                    No fixed guaranteed payout
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      </header>
 
       <main className="flex-1">
-        <section className="container mx-auto px-4 py-6">
-          <div className="rounded-[28px] border-[2px] border-[#D7C29B] bg-[#FFF8E7] p-4 shadow-sm space-y-4">
+        <section className="container mx-auto px-4 py-6 relative">
+          {/* RICE SACK BACKGROUND - ONLY FOR BUY PRODUCTS SECTION */}
+          {marketMode === "products" && <RiceSackBackgroundGrid />}
+          
+          <div className="rounded-[28px] border-[2px] border-[#D7C29B] bg-[#FFF8E7] p-4 shadow-sm space-y-4 relative z-10">
             <div className="flex items-center justify-between flex-wrap gap-3">
               <div className="inline-flex items-center gap-2 rounded-full bg-[#FFF0BF] px-3 py-1 text-[11px] font-black uppercase tracking-wide text-[#7A5618]">
                 <SlidersHorizontal className="h-3.5 w-3.5" />
@@ -1285,7 +1631,7 @@ export default function MarketplacePage() {
                   <div key={product.id} className="space-y-2">
                     <ProductCard 
                       {...product} 
-                      rating={product.rating ?? 4.5}  // Provide default rating if undefined
+                      rating={product.rating ?? 4.5}
                     />
                     <div className="flex flex-wrap gap-2 px-1">
                       {product.verified && (
