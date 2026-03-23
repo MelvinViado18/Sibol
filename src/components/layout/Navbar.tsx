@@ -1,81 +1,53 @@
-"use client";
+'use client';
 
-import Link from "next/link";
-import { useState } from "react";
-import {
-  Menu,
-  X,
-  Wallet,
-  ShoppingBag,
-  Leaf,
-  LayoutDashboard,
-  LogOut,
-} from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
-import { ethers } from "ethers";
-import { useAuth } from "@/providers/AuthProvider";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import Link from 'next/link';
+import { useState } from 'react';
+import { Menu, X, Wallet, ShoppingBag, Leaf, LayoutDashboard } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
+import { useAccount, useConnect, useDisconnect, useChainId } from 'wagmi';
+import { injected, coinbaseWallet } from 'wagmi/connectors';
 
 export function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
-  const [isConnected, setIsConnected] = useState(false);
-  const [address, setAddress] = useState("");
-  const [chainName, setChainName] = useState("");
-  const { user, logout } = useAuth();
+  const { address, isConnected } = useAccount();
+  const { connect, connectors, error, isPending } = useConnect();
+  const { disconnect } = useDisconnect();
+  const chainId = useChainId();
 
-  const connectWallet = async () => {
-    if (typeof window === "undefined" || !(window as any).ethereum) {
-      alert("No Web3 wallet found. Install MetaMask to connect.");
-      return;
+  // Determine chain name based on chainId (optional)
+  const getChainName = (id: number) => {
+    if (id === 8453) return 'Base';
+    if (id === 1) return 'Ethereum';
+    return `Chain ${id}`;
+  };
+
+  const handleConnect = () => {
+    // You can prioritize injected wallet, but also allow the user to choose.
+    // For simplicity, we'll attempt to connect with the injected connector first.
+    const injectedConnector = connectors.find(c => c.id === 'injected');
+    if (injectedConnector) {
+      connect({ connector: injectedConnector });
+    } else {
+      // Fallback to first connector (e.g., coinbaseWallet)
+      connect({ connector: connectors[0] });
     }
+  };
 
-    try {
-      const provider = new ethers.BrowserProvider((window as any).ethereum);
-      await provider.send("eth_requestAccounts", []);
-
-      const signer = await provider.getSigner();
-      const connectedAddress = await signer.getAddress();
-      const network = await provider.getNetwork();
-      const chainId = Number(network.chainId);
-      const networkName = chainId === 8453 ? "Base" : chainId === 1 ? "Ethereum" : `Chain ${chainId}`;
-
-      setAddress(`${connectedAddress.substring(0, 6)}...${connectedAddress.slice(-4)}`);
-      setChainName(networkName);
-      setIsConnected(true);
-
-      if (chainId !== 8453 && chainId !== 1) {
-        alert(`Connected to ${networkName} (${network.chainId}). For Base switch network to chainId 8453.`);
-      }
-    } catch (error) {
-      console.error("Wallet connect failed", error);
-      alert("Wallet connection failed. Check console for details.");
-    }
+  const handleDisconnect = () => {
+    disconnect();
   };
 
   const navLinks = [
-    { name: "Marketplace", href: "/market", icon: ShoppingBag },
-    { name: "Farmer Portal", href: "/farmer", icon: LayoutDashboard },
-    { name: "About Sibol", href: "/#about", icon: Leaf },
+    { name: 'Marketplace', href: '/market', icon: ShoppingBag },
+    { name: 'Farmer Portal', href: '/farmer', icon: LayoutDashboard },
+    { name: 'About Sibol', href: '/#about', icon: Leaf },
   ];
 
-  const getAvatarInitials = () => {
-    if (!user) return "?";
-    return user.name
-      .split(" ")
-      .map((n) => n[0])
-      .join("")
-      .toUpperCase()
-      .slice(0, 2);
-  };
+  // Format address for display
+  const formattedAddress = address
+    ? `${address.substring(0, 6)}...${address.slice(-4)}`
+    : '';
 
   return (
     <nav className="sticky top-0 z-50 w-full border-b bg-background/80 backdrop-blur-md">
@@ -87,7 +59,7 @@ export function Navbar() {
                 <Leaf className="h-5 w-5 text-primary-foreground" />
               </div>
               <span className="text-xl font-bold tracking-tight text-primary font-headline">
-                Sibol
+                SibolMarket
               </span>
             </Link>
           </div>
@@ -103,55 +75,36 @@ export function Navbar() {
                 {link.name}
               </Link>
             ))}
-
-            <div className="flex items-center gap-3">
-              {/* 🔥 Wallet ALWAYS visible */}
+            {isConnected ? (
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleDisconnect}
+                  className="gap-2"
+                >
+                  <Wallet className="h-4 w-4" />
+                  {formattedAddress}
+                </Button>
+                {chainId && chainId !== 8453 && chainId !== 1 && (
+                  <span className="text-xs text-yellow-600">
+                    (Switch to Base)
+                  </span>
+                )}
+              </div>
+            ) : (
               <Button
-                variant={isConnected ? "outline" : "default"}
+                variant="default"
                 size="sm"
-                onClick={connectWallet}
+                onClick={handleConnect}
+                disabled={isPending}
                 className="gap-2"
               >
                 <Wallet className="h-4 w-4" />
-                {isConnected ? address : "Connect Wallet"}
+                {isPending ? 'Connecting...' : 'Connect Wallet'}
               </Button>
-            </div>
-              {!user ? (
-                <>
-                  <Link href="/auth">
-                    <Button size="sm">
-                      Sign Up
-                    </Button>
-                  </Link>
-                </>
-              ) : (
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" className="relative h-10 w-10 rounded-full">
-                      <Avatar className="h-10 w-10">
-                        <AvatarFallback className="bg-primary/10 text-primary">
-                          {getAvatarInitials()}
-                        </AvatarFallback>
-                      </Avatar>
-                    </Button>
-                  </DropdownMenuTrigger>
-
-                  <DropdownMenuContent className="w-56" align="end">
-                    <DropdownMenuLabel>
-                      <div className="flex flex-col">
-                        <p className="text-sm font-medium">{user.name}</p>
-                        <p className="text-xs text-muted-foreground">{user.email}</p>
-                      </div>
-                    </DropdownMenuLabel>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={logout} className="text-red-600">
-                      Logout
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              )}
-
-              
+            )}
+            {error && <p className="text-xs text-red-500">{error.message}</p>}
           </div>
 
           {/* Mobile menu button */}
@@ -164,7 +117,7 @@ export function Navbar() {
       </div>
 
       {/* Mobile Nav */}
-      <div className={cn("md:hidden border-t bg-background", isOpen ? "block" : "hidden")}>
+      <div className={cn('md:hidden border-t bg-background', isOpen ? 'block' : 'hidden')}>
         <div className="container mx-auto px-4 py-4 space-y-4">
           {navLinks.map((link) => (
             <Link
@@ -177,44 +130,26 @@ export function Navbar() {
               {link.name}
             </Link>
           ))}
-
-          {!user ? (
-            <div className="space-y-2 pt-2 border-t">
-              <Link href="/auth" onClick={() => setIsOpen(false)}>
-                <Button variant="ghost" className="w-full justify-center">
-                  Login
-                </Button>
-              </Link>
-              <Link href="/auth" onClick={() => setIsOpen(false)}>
-                <Button className="w-full justify-center">
-                  Sign Up
-                </Button>
-              </Link>
-            </div>
+          {isConnected ? (
+            <Button
+              className="w-full gap-2 justify-center"
+              variant="outline"
+              onClick={handleDisconnect}
+            >
+              <Wallet className="h-4 w-4" />
+              {formattedAddress}
+            </Button>
           ) : (
-            <div className="space-y-2 pt-2 border-t">
-              <div className="flex items-center justify-between p-2 bg-secondary rounded-md">
-                <span className="text-sm">{user.name}</span>
-              </div>
-
-              <Button
-                className="w-full gap-2 justify-center"
-                onClick={connectWallet}
-              >
-                <Wallet className="h-4 w-4" />
-                {isConnected ? address : "Connect Wallet"}
-              </Button>
-
-              <Button
-                variant="outline"
-                className="w-full gap-2 justify-center"
-                onClick={logout}
-              >
-                <LogOut className="h-4 w-4" />
-                Logout
-              </Button>
-            </div>
+            <Button
+              className="w-full gap-2 justify-center"
+              onClick={handleConnect}
+              disabled={isPending}
+            >
+              <Wallet className="h-4 w-4" />
+              {isPending ? 'Connecting...' : 'Connect Wallet'}
+            </Button>
           )}
+          {error && <p className="text-xs text-red-500">{error.message}</p>}
         </div>
       </div>
     </nav>
