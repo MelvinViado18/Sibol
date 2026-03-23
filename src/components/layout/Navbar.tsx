@@ -1,161 +1,41 @@
-"use client";
+'use client';
 
-import Link from "next/link";
-import { useEffect, useState } from "react";
-import {
-  Menu,
-  X,
-  Wallet,
-  ShoppingBag,
-  Leaf,
-  LayoutDashboard,
-  LogOut,
-  Truck,
-  Package,
-} from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
-import { ethers } from "ethers";
-import { useAuth } from "@/providers/AuthProvider";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import Image from "next/image";
-
-declare global {
-  interface Window {
-    ethereum?: any;
-  }
-}
+import Link from 'next/link';
+import { useState } from 'react';
+import { Menu, X, Wallet, ShoppingBag, Leaf, LayoutDashboard } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
+import { useAccount, useConnect, useDisconnect, useChainId } from 'wagmi';
+import { injected, coinbaseWallet } from 'wagmi/connectors';
 
 export function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
-  const [isConnected, setIsConnected] = useState(false);
-  const [address, setAddress] = useState("");
-  const [chainName, setChainName] = useState("");
-  const { user, logout } = useAuth();
+  const { address, isConnected } = useAccount();
+  const { connect, connectors, error, isPending } = useConnect();
+  const { disconnect } = useDisconnect();
+  const chainId = useChainId();
 
-  const formatAddress = (addr: string) =>
-    `${addr.slice(0, 6)}...${addr.slice(-4)}`;
-
-  const getNetworkName = (chainId: number) => {
-    if (chainId === 8453) return "Base";
-    if (chainId === 84532) return "Base Sepolia";
-    if (chainId === 1) return "Ethereum";
-    return `Chain ${chainId}`;
+  // Determine chain name based on chainId (optional)
+  const getChainName = (id: number) => {
+    if (id === 8453) return 'Base';
+    if (id === 1) return 'Ethereum';
+    return `Chain ${id}`;
   };
 
-  const updateWalletState = async () => {
-    if (!window.ethereum) return;
-
-    try {
-      const provider = new ethers.BrowserProvider(window.ethereum);
-      const accounts = await provider.listAccounts();
-
-      if (accounts.length === 0) {
-        setIsConnected(false);
-        setAddress("");
-        setChainName("");
-        return;
-      }
-
-      const signer = await provider.getSigner();
-      const connectedAddress = await signer.getAddress();
-      const network = await provider.getNetwork();
-      const chainId = Number(network.chainId);
-
-      setAddress(formatAddress(connectedAddress));
-      setChainName(getNetworkName(chainId));
-      setIsConnected(true);
-    } catch (error) {
-      console.error("Failed to update wallet state:", error);
+  const handleConnect = () => {
+    // You can prioritize injected wallet, but also allow the user to choose.
+    // For simplicity, we'll attempt to connect with the injected connector first.
+    const injectedConnector = connectors.find(c => c.id === 'injected');
+    if (injectedConnector) {
+      connect({ connector: injectedConnector });
+    } else {
+      // Fallback to first connector (e.g., coinbaseWallet)
+      connect({ connector: connectors[0] });
     }
   };
 
-  const switchToBase = async () => {
-    if (!window.ethereum) return;
-
-    try {
-      await window.ethereum.request({
-        method: "wallet_switchEthereumChain",
-        params: [{ chainId: "0x2105" }], // 8453 = Base mainnet
-      });
-    } catch (switchError: any) {
-      if (switchError.code === 4902) {
-        try {
-          await window.ethereum.request({
-            method: "wallet_addEthereumChain",
-            params: [
-              {
-                chainId: "0x2105",
-                chainName: "Base",
-                nativeCurrency: {
-                  name: "Ether",
-                  symbol: "ETH",
-                  decimals: 18,
-                },
-                rpcUrls: ["https://mainnet.base.org"],
-                blockExplorerUrls: ["https://basescan.org"],
-              },
-            ],
-          });
-        } catch (addError) {
-          console.error("Failed to add Base network:", addError);
-        }
-      } else {
-        console.error("Failed to switch to Base:", switchError);
-      }
-    }
-  };
-
-  const connectWallet = async () => {
-    if (typeof window === "undefined") return;
-
-    if (!window.ethereum) {
-      const isMobile =
-        /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-
-      if (isMobile) {
-        alert(
-          "No wallet detected. On mobile, open this site inside the MetaMask app browser or another wallet app browser."
-        );
-      } else {
-        alert(
-          "No wallet detected. Please install MetaMask or another EVM wallet extension."
-        );
-        window.open("https://metamask.io/download/", "_blank");
-      }
-      return;
-    }
-
-    try {
-      const provider = new ethers.BrowserProvider(window.ethereum);
-
-      await provider.send("eth_requestAccounts", []);
-
-      const signer = await provider.getSigner();
-      const connectedAddress = await signer.getAddress();
-      const network = await provider.getNetwork();
-      const chainId = Number(network.chainId);
-
-      setAddress(formatAddress(connectedAddress));
-      setChainName(getNetworkName(chainId));
-      setIsConnected(true);
-
-      if (chainId !== 8453) {
-        await switchToBase();
-        await updateWalletState();
-      }
-    } catch (error) {
-      console.error("Wallet connect failed:", error);
-      alert("Wallet connection failed. Check the console for details.");
-    }
+  const handleDisconnect = () => {
+    disconnect();
   };
 
   useEffect(() => {
@@ -176,23 +56,15 @@ export function Navbar() {
   }, []);
 
   const navLinks = [
-    { name: "Marketplace", href: "/market", icon: ShoppingBag },
-    { name: "My Orders", href: "/orders", icon: Package },
-    { name: "My Investments", href: "/investments", icon: Wallet },
-    { name: "Farmer Portal", href: "/farmer", icon: LayoutDashboard },
-    ...(user ? [{ name: "Logistics Portal", href: "/logistics", icon: Truck }] : []),
-    { name: "About Sibol", href: "/#about", icon: Leaf },
+    { name: 'Marketplace', href: '/market', icon: ShoppingBag },
+    { name: 'Farmer Portal', href: '/farmer', icon: LayoutDashboard },
+    { name: 'About Sibol', href: '/#about', icon: Leaf },
   ];
 
-  const getAvatarInitials = () => {
-    if (!user) return "?";
-    return user.name
-      .split(" ")
-      .map((n) => n[0])
-      .join("")
-      .toUpperCase()
-      .slice(0, 2);
-  };
+  // Format address for display
+  const formattedAddress = address
+    ? `${address.substring(0, 6)}...${address.slice(-4)}`
+    : '';
 
   return (
     <nav className="sticky top-0 z-50 w-full border-b bg-background/80 backdrop-blur-md">
@@ -210,7 +82,7 @@ export function Navbar() {
                 />
               </div>
               <span className="text-xl font-bold tracking-tight text-primary font-headline">
-                Sibol
+                SibolMarket
               </span>
             </Link>
           </div>
@@ -240,55 +112,37 @@ export function Navbar() {
               >
                 {link.name}
               </Link>
-            );
-          })}
-
-            <div className="flex items-center gap-3">
+            ))}
+            {isConnected ? (
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleDisconnect}
+                  className="gap-2"
+                >
+                  <Wallet className="h-4 w-4" />
+                  {formattedAddress}
+                </Button>
+                {chainId && chainId !== 8453 && chainId !== 1 && (
+                  <span className="text-xs text-yellow-600">
+                    (Switch to Base)
+                  </span>
+                )}
+              </div>
+            ) : (
               <Button
-                variant={isConnected ? "outline" : "default"}
+                variant="default"
                 size="sm"
-                onClick={connectWallet}
+                onClick={handleConnect}
+                disabled={isPending}
                 className="gap-2"
               >
                 <Wallet className="h-4 w-4" />
-                {isConnected ? address : "Connect Wallet"}
+                {isPending ? 'Connecting...' : 'Connect Wallet'}
               </Button>
-
-              {isConnected && (
-                <span className="text-xs text-muted-foreground">{chainName}</span>
-              )}
-            </div>
-
-            {!user ? (
-              <Link href="/auth">
-                <Button size="sm">Sign Up</Button>
-              </Link>
-            ) : (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="relative h-10 w-10 rounded-full">
-                    <Avatar className="h-10 w-10">
-                      <AvatarFallback className="bg-primary/10 text-primary">
-                        {getAvatarInitials()}
-                      </AvatarFallback>
-                    </Avatar>
-                  </Button>
-                </DropdownMenuTrigger>
-
-                <DropdownMenuContent className="w-56" align="end">
-                  <DropdownMenuLabel>
-                    <div className="flex flex-col">
-                      <p className="text-sm font-medium">{user.name}</p>
-                      <p className="text-xs text-muted-foreground">{user.email}</p>
-                    </div>
-                  </DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={logout} className="text-red-600">
-                    Logout
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
             )}
+            {error && <p className="text-xs text-red-500">{error.message}</p>}
           </div>
 
           <div className="md:hidden flex items-center gap-2">
@@ -299,7 +153,8 @@ export function Navbar() {
         </div>
       </div>
 
-      <div className={cn("md:hidden border-t bg-background", isOpen ? "block" : "hidden")}>
+      {/* Mobile Nav */}
+      <div className={cn('md:hidden border-t bg-background', isOpen ? 'block' : 'hidden')}>
         <div className="container mx-auto px-4 py-4 space-y-4">
           {navLinks.map((link) => {
           const isMyOrders = link.name === "My Orders";
@@ -331,48 +186,27 @@ export function Navbar() {
               <link.icon className="h-5 w-5" />
               {link.name}
             </Link>
-          );
-        })}
-
-          {!user ? (
-            <div className="space-y-2 pt-2 border-t">
-              <Link href="/auth" onClick={() => setIsOpen(false)}>
-                <Button variant="ghost" className="w-full justify-center">
-                  Login
-                </Button>
-              </Link>
-              <Link href="/auth" onClick={() => setIsOpen(false)}>
-                <Button className="w-full justify-center">Sign Up</Button>
-              </Link>
-            </div>
+          ))}
+          {isConnected ? (
+            <Button
+              className="w-full gap-2 justify-center"
+              variant="outline"
+              onClick={handleDisconnect}
+            >
+              <Wallet className="h-4 w-4" />
+              {formattedAddress}
+            </Button>
           ) : (
-            <div className="space-y-2 pt-2 border-t">
-              <div className="flex items-center justify-between p-2 bg-secondary rounded-md">
-                <span className="text-sm">{user.name}</span>
-              </div>
-
-              <Button
-                className="w-full gap-2 justify-center"
-                onClick={connectWallet}
-              >
-                <Wallet className="h-4 w-4" />
-                {isConnected ? address : "Connect Wallet"}
-              </Button>
-
-              {isConnected && (
-                <p className="text-center text-xs text-muted-foreground">{chainName}</p>
-              )}
-
-              <Button
-                variant="outline"
-                className="w-full gap-2 justify-center"
-                onClick={logout}
-              >
-                <LogOut className="h-4 w-4" />
-                Logout
-              </Button>
-            </div>
+            <Button
+              className="w-full gap-2 justify-center"
+              onClick={handleConnect}
+              disabled={isPending}
+            >
+              <Wallet className="h-4 w-4" />
+              {isPending ? 'Connecting...' : 'Connect Wallet'}
+            </Button>
           )}
+          {error && <p className="text-xs text-red-500">{error.message}</p>}
         </div>
       </div>
     </nav>
