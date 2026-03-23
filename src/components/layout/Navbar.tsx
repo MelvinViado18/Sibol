@@ -1,3 +1,5 @@
+//new
+
 'use client';
 
 import Link from 'next/link';
@@ -15,20 +17,13 @@ export function Navbar() {
   const { disconnect } = useDisconnect();
   const chainId = useChainId();
 
-  // Determine chain name (optional)
-  const getChainName = (id: number) => {
-    if (id === 8453) return 'Base';
-    if (id === 1) return 'Ethereum';
-    return `Chain ${id}`;
-  };
-
   const handleConnect = () => {
     // Try the injected connector first (MetaMask, Coinbase, etc.)
     const injectedConnector = connectors.find(c => c.id === 'injected');
     if (injectedConnector) {
       connect({ connector: injectedConnector });
-    } else {
-      // Fallback to the first available connector
+    } else if (connectors[0]) {
+      // Fallback to first available connector
       connect({ connector: connectors[0] });
     }
   };
@@ -41,8 +36,7 @@ export function Navbar() {
     { name: 'Marketplace', href: '/market', icon: ShoppingBag },
     { name: 'Farmer Portal', href: '/farmer', icon: LayoutDashboard },
     { name: 'About Sibol', href: '/#about', icon: Leaf },
-    // If you want to add My Orders, uncomment the line below:
-    // { name: 'My Orders', href: '/orders', icon: ShoppingBag },
+    { name: 'My Orders', href: '/orders', icon: ShoppingBag }, // example
   ];
 
   const formattedAddress = address
@@ -53,10 +47,12 @@ export function Navbar() {
     <nav className="sticky top-0 z-50 w-full border-b bg-background/80 backdrop-blur-md">
       <div className="container mx-auto px-4">
         <div className="flex h-16 items-center justify-between">
+          {/* Logo */}
           <div className="flex items-center gap-2">
             <Link href="/" className="flex items-center gap-2">
               <div className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-lg">
-                <Image
+                {/* Use next/image, make sure you have the image in public folder */}
+                <img
                   src="/sibolLogo.png"
                   alt="Sibol logo"
                   width={32}
@@ -73,9 +69,8 @@ export function Navbar() {
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center gap-6">
             {navLinks.map((link) => {
-              const isMyOrders = link.name === 'My Orders';
-
-              if (isMyOrders && !isConnected) {
+              // If "My Orders" and not connected, show a button that triggers connect
+              if (link.name === 'My Orders' && !isConnected) {
                 return (
                   <button
                     key={link.name}
@@ -98,7 +93,6 @@ export function Navbar() {
                 </Link>
               );
             })}
-
             {isConnected ? (
               <div className="flex items-center gap-2">
                 <Button
@@ -144,9 +138,7 @@ export function Navbar() {
       <div className={cn('md:hidden border-t bg-background', isOpen ? 'block' : 'hidden')}>
         <div className="container mx-auto px-4 py-4 space-y-4">
           {navLinks.map((link) => {
-            const isMyOrders = link.name === 'My Orders';
-
-            if (isMyOrders && !isConnected) {
+            if (link.name === 'My Orders' && !isConnected) {
               return (
                 <button
                   key={link.name}
@@ -175,7 +167,6 @@ export function Navbar() {
               </Link>
             );
           })}
-
           {isConnected ? (
             <Button
               className="w-full gap-2 justify-center"
