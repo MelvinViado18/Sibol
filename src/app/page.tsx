@@ -15,6 +15,12 @@ import {
   Globe,
   Sprout,
   Truck,
+  TrendingUp,
+  HandCoins,
+  Wheat,
+  ChartLine,
+  Wallet,
+  Coins,
 } from "lucide-react";
 
 // WoodSign component
@@ -177,6 +183,45 @@ function StepCard({
   );
 }
 
+// Invest Step Card - Now using green colors like the rest
+function InvestStepCard({
+  number,
+  icon,
+  title,
+  description,
+  highlight,
+}: {
+  number: string;
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+  highlight?: string;
+}) {
+  return (
+    <div className="group relative rounded-2xl border-[3px] border-[#C89D57] bg-gradient-to-br from-white to-primary/5 p-6 shadow-md transition-all duration-300 hover:-translate-y-1 hover:shadow-xl">
+      <div className="absolute -right-2 -top-2 flex h-10 w-10 items-center justify-center rounded-full bg-primary text-sm font-bold text-white shadow-lg z-20">
+        {number}
+      </div>
+      
+      <div className="mb-4 flex items-center gap-3">
+        <div className="rounded-xl bg-primary/10 p-3 text-primary transition-all group-hover:scale-110">
+          {icon}
+        </div>
+        {highlight && (
+          <Badge className="bg-primary text-white hover:bg-primary/90">
+            {highlight}
+          </Badge>
+        )}
+      </div>
+      
+      <h3 className="mb-2 text-xl font-bold">{title}</h3>
+      <p className="text-sm leading-relaxed text-muted-foreground">{description}</p>
+      
+      <div className="mt-4 h-0.5 w-12 rounded-full bg-gradient-to-r from-primary/40 to-transparent" />
+    </div>
+  );
+}
+
 const fadeUp: Variants = {
   hidden: { opacity: 0, y: 24 },
   show: {
@@ -205,6 +250,9 @@ export default function LandingPage() {
   const farmerImageUrl = "/images/11.jpg";
   const buyerImageUrl = "/images/12.jpg";
   const deliveryImageUrl = "/images/13.jpg";
+  
+  // Images for micro-invest section
+  const investImageUrl = "/images/harvest.jpg";
 
   return (
     <div className="min-h-screen overflow-x-hidden bg-background text-foreground">
@@ -423,6 +471,190 @@ export default function LandingPage() {
           </div>
         </section>
 
+        {/* NEW: MICRO-INVEST IN HARVEST SECTION - Now with green colors */}
+        <section className="bg-gradient-to-br from-primary/5 via-secondary/10 to-white py-20 lg:py-24">
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <div className="mx-auto mb-16 text-center">
+              <WoodSign>Community-Powered Farming</WoodSign>
+              <h2 className="mt-8 text-3xl font-bold font-headline sm:text-4xl">
+                Micro-Invest in Harvest
+              </h2>
+              <p className="mt-4 text-lg text-muted-foreground max-w-2xl mx-auto">
+                Be part of the harvest story. Invest small amounts, support local farmers, 
+                and earn returns when the crops succeed.
+              </p>
+            </div>
+
+            {/* Hero Section for Micro-Invest */}
+            <div className="grid items-center gap-12 lg:grid-cols-2 mb-20">
+              <div className="relative">
+                <div className="absolute -inset-4 rounded-[2rem] bg-primary/10 blur-2xl opacity-50" />
+                <div className="relative overflow-hidden rounded-[1.5rem] border border-primary/30 bg-white shadow-xl">
+                  <div className="relative w-full overflow-hidden" style={{ aspectRatio: "4/3" }}>
+                    <Image
+                      src={investImageUrl}
+                      alt="Rice harvest in Philippines"
+                      fill
+                      className="object-cover"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
+                  </div>
+                  <div className="p-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <Badge className="bg-primary text-white">Active Campaign</Badge>
+                      <span className="text-sm text-muted-foreground">75% Funded</span>
+                    </div>
+                    <h3 className="text-xl font-bold mb-2">Nueva Ecija Organic Rice</h3>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Help 25 farmers cultivate 10 hectares of premium organic rice.
+                    </p>
+                    <div className="w-full bg-secondary rounded-full h-2 mb-4">
+                      <div className="bg-primary h-2 rounded-full" style={{ width: "75%" }} />
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span>₱150,000 raised</span>
+                      <span className="font-bold">Goal: ₱200,000</span>
+                    </div>
+                    <Button className="mt-6 w-full bg-primary hover:bg-primary/90 text-white">
+                      Invest from ₱500
+                      <ArrowRight className="ml-2 h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <div className="mb-8">
+                  <Badge className="bg-primary/10 text-primary border-none mb-4">
+                    For Everyone
+                  </Badge>
+                  <h3 className="text-2xl font-bold mb-4">How it works</h3>
+                  <p className="text-muted-foreground mb-6">
+                    Instead of farmers shouldering all upfront costs, they create harvest campaigns 
+                    where everyday people like you can contribute small amounts. When the harvest succeeds, 
+                    everyone shares the profit.
+                  </p>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="flex gap-4 p-4 rounded-xl bg-white/60 backdrop-blur-sm border border-primary/20">
+                    <div className="flex-shrink-0 w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+                      <HandCoins className="h-6 w-6 text-primary" />
+                    </div>
+                    <div>
+                      <h4 className="font-semibold mb-1">Invest Small Amounts</h4>
+                      <p className="text-sm text-muted-foreground">Start from just ₱500—support farming without becoming a farmer yourself.</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex gap-4 p-4 rounded-xl bg-white/60 backdrop-blur-sm border border-primary/20">
+                    <div className="flex-shrink-0 w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+                      <TrendingUp className="h-6 w-6 text-primary" />
+                    </div>
+                    <div>
+                      <h4 className="font-semibold mb-1">Earn Proportional Returns</h4>
+                      <p className="text-sm text-muted-foreground">Get your investment back plus a share of harvest profits—70% goes to investors.</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex gap-4 p-4 rounded-xl bg-white/60 backdrop-blur-sm border border-primary/20">
+                    <div className="flex-shrink-0 w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+                      <Wheat className="h-6 w-6 text-primary" />
+                    </div>
+                    <div>
+                      <h4 className="font-semibold mb-1">Choose Your Payout</h4>
+                      <p className="text-sm text-muted-foreground">Get returns as cash or convert to actual rice—support local agriculture tangibly.</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Campaign Lifecycle Steps */}
+            <div className="mt-16">
+              <div className="text-center mb-12">
+                <h3 className="text-2xl font-bold mb-2">From Seed to Harvest</h3>
+                <p className="text-muted-foreground">The journey of a harvest campaign</p>
+              </div>
+              
+              <div className="grid gap-6 md:grid-cols-4">
+                <InvestStepCard
+                  number="1"
+                  icon={<Sprout className="h-6 w-6" />}
+                  title="Campaign Creation"
+                  description="Farmer creates campaign with funding goal, expected yield, and profit split details."
+                  highlight="Funding Stage"
+                />
+                <InvestStepCard
+                  number="2"
+                  icon={<Users className="h-6 w-6" />}
+                  title="Community Investment"
+                  description="Investors contribute small amounts until the funding goal is reached."
+                  highlight="Active Campaign"
+                />
+                <InvestStepCard
+                  number="3"
+                  icon={<Leaf className="h-6 w-6" />}
+                  title="Growing Stage"
+                  description="Farmer receives capital and proceeds with planting and cultivation."
+                  highlight="In Progress"
+                />
+                <InvestStepCard
+                  number="4"
+                  icon={<Coins className="h-6 w-6" />}
+                  title="Profit Distribution"
+                  description="After harvest, net profit is split—70% to investors, 30% to farmer."
+                  highlight="Returns"
+                />
+              </div>
+            </div>
+
+            {/* Benefits Grid */}
+            <div className="mt-20 grid gap-6 md:grid-cols-3">
+              <div className="text-center p-6 rounded-xl bg-white shadow-md">
+                <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
+                  <Wallet className="h-8 w-8 text-primary" />
+                </div>
+                <h4 className="font-bold mb-2">No Middlemen</h4>
+                <p className="text-sm text-muted-foreground">Farmers access capital without loans or intermediaries—investors get fair returns.</p>
+              </div>
+              
+              <div className="text-center p-6 rounded-xl bg-white shadow-md">
+                <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
+                  <ChartLine className="h-8 w-8 text-primary" />
+                </div>
+                <h4 className="font-bold mb-2">100% Transparent</h4>
+                <p className="text-sm text-muted-foreground">Every transaction on blockchain—track funding, progress, and distributions in real-time.</p>
+              </div>
+              
+              <div className="text-center p-6 rounded-xl bg-white shadow-md">
+                <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
+                  <Wheat className="h-8 w-8 text-primary" />
+                </div>
+                <h4 className="font-bold mb-2">Real-World Impact</h4>
+                <p className="text-sm text-muted-foreground">Choose rice payout to directly receive the fruits of the harvest you helped fund.</p>
+              </div>
+            </div>
+
+            {/* CTA for Micro-Invest */}
+            <div className="mt-16 text-center">
+              <Button 
+                asChild 
+                size="lg" 
+                className="h-14 rounded-2xl px-8 bg-primary hover:bg-primary/90 text-white shadow-lg hover:shadow-xl transition-all duration-300 font-bold"
+              >
+                <Link href="/market?tab=harvests">
+                  Start Investing in Farms
+                  <ArrowRight className="ml-2 h-5 w-5" />
+                </Link>
+              </Button>
+              <p className="mt-4 text-sm text-muted-foreground">
+                Support local agriculture. Grow together. 🌾
+              </p>
+            </div>
+          </div>
+        </section>
+
         {/* HOW IT WORKS - Redesigned with image at top and badge above image */}
         <section className="bg-secondary/20 py-20 lg:py-24">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -462,7 +694,7 @@ export default function LandingPage() {
                 description="Your order is packed fresh and delivered. Payment is released only when you're happy — no haggling, no stress."
                 marketTag="Doorstep Delivery"
                 imageUrl={deliveryImageUrl}
-                statusBadge="SDeliver"
+                statusBadge="Deliver"
               />
             </div>
           </div>
@@ -691,15 +923,12 @@ export default function LandingPage() {
           </div>
 
           <div className="space-y-4 md:col-span-2">
-            <h4 className="font-bold">Connect</h4>
-            <div className="flex gap-4">
-              <Link
-                href="#"
-                className="rounded-full border bg-white p-2 transition-colors hover:bg-secondary"
-              >
-                <Globe className="h-5 w-5" />
-              </Link>
-            </div>
+            <h4 className="font-bold">Invest</h4>
+            <ul className="space-y-2 text-sm text-muted-foreground">
+              <li><Link href="/invest" className="hover:text-primary transition-colors">Active Campaigns</Link></li>
+              <li><Link href="/invest/how-it-works" className="hover:text-primary transition-colors">How Investing Works</Link></li>
+              <li><Link href="/invest/portfolio" className="hover:text-primary transition-colors">My Investments</Link></li>
+            </ul>
           </div>
 
           <div className="space-y-4 md:col-span-2">

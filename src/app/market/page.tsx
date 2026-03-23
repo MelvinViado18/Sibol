@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { Navbar } from "@/components/layout/Navbar";
 import { ProductCard } from "@/components/marketplace/ProductCard";
 import { Input } from "@/components/ui/input";
@@ -473,6 +474,7 @@ function getRiskLevel(harvest: Harvest) {
 }
 
 export default function MarketplacePage() {
+  const searchParams = useSearchParams();
   const [marketMode, setMarketMode] = useState<"products" | "harvests">(
     "products"
   );
@@ -490,6 +492,16 @@ export default function MarketplacePage() {
   );
 
   const currentUser = useMemo(() => getCurrentUser(), []);
+
+  // Set marketMode based on URL parameter
+  useEffect(() => {
+    const tabParam = searchParams.get("tab");
+    if (tabParam === "harvests") {
+      setMarketMode("harvests");
+      // Also set activeTab to "all" to show all harvests
+      setActiveTab("all");
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     const loadProducts = () => {
@@ -827,248 +839,245 @@ export default function MarketplacePage() {
       <Navbar />
 
       <header className="relative overflow-hidden border-b border-[#D9C6A0] bg-[#F6EEDC]">
-  {/* Top stripe */}
-  <div className="h-10 bg-[repeating-linear-gradient(90deg,#2E6C3C_0px,#2E6C3C_28px,#F7EED8_28px,#F7EED8_56px)] border-b-[3px] border-[#8A5A2B]" />
+        {/* Top stripe */}
+        <div className="h-10 bg-[repeating-linear-gradient(90deg,#2E6C3C_0px,#2E6C3C_28px,#F7EED8_28px,#F7EED8_56px)] border-b-[3px] border-[#8A5A2B]" />
 
-  {/* Filipino Rice Field Background - only for harvests */}
-  {marketMode === "harvests" && (
-    <div className="pointer-events-none absolute inset-0 overflow-hidden">
-      {/* Base sky */}
-      <div className="absolute inset-0 bg-[linear-gradient(to_bottom,#FFF8E6_0%,#FBE8BF_22%,#F3D897_48%,#DDC076_72%,#CFAA5F_100%)]" />
+        {/* Filipino Rice Field Background - only for harvests */}
+        {marketMode === "harvests" && (
+          <div className="pointer-events-none absolute inset-0 overflow-hidden">
+            {/* Base sky */}
+            <div className="absolute inset-0 bg-[linear-gradient(to_bottom,#FFF8E6_0%,#FBE8BF_22%,#F3D897_48%,#DDC076_72%,#CFAA5F_100%)]" />
 
-      {/* Grainy warm overlay */}
-      <div className="absolute inset-0 opacity-[0.08] bg-[radial-gradient(circle_at_20%_20%,#ffffff_0.8px,transparent_1px)] bg-[length:16px_16px]" />
+            {/* Grainy warm overlay */}
+            <div className="absolute inset-0 opacity-[0.08] bg-[radial-gradient(circle_at_20%_20%,#ffffff_0.8px,transparent_1px)] bg-[length:16px_16px]" />
 
-      {/* Sun glow */}
-      <div className="absolute right-[6%] top-8 h-52 w-52 rounded-full bg-[#FFD76A]/30 blur-3xl" />
-      <div className="absolute right-[10%] top-14 h-28 w-28 rounded-full bg-[#FFE9A5]/90" />
-      <div className="absolute right-[12%] top-16 h-20 w-20 rounded-full bg-[#FFF4CA]/90" />
+            {/* Sun glow */}
+            <div className="absolute right-[6%] top-8 h-52 w-52 rounded-full bg-[#FFD76A]/30 blur-3xl" />
+            <div className="absolute right-[10%] top-14 h-28 w-28 rounded-full bg-[#FFE9A5]/90" />
+            <div className="absolute right-[12%] top-16 h-20 w-20 rounded-full bg-[#FFF4CA]/90" />
 
-      {/* Light rays */}
-      <div className="absolute right-[2%] top-6 h-72 w-72 rounded-full bg-[conic-gradient(from_210deg_at_50%_50%,rgba(255,255,255,0.0),rgba(255,240,180,0.18),rgba(255,255,255,0.0),rgba(255,240,180,0.14),rgba(255,255,255,0.0))] blur-2xl" />
+            {/* Light rays */}
+            <div className="absolute right-[2%] top-6 h-72 w-72 rounded-full bg-[conic-gradient(from_210deg_at_50%_50%,rgba(255,255,255,0.0),rgba(255,240,180,0.18),rgba(255,255,255,0.0),rgba(255,240,180,0.14),rgba(255,255,255,0.0))] blur-2xl" />
 
-      {/* Clouds */}
-      <div className="absolute left-[6%] top-12 h-12 w-36 rounded-full bg-white/35 blur-sm" />
-      <div className="absolute left-[11%] top-10 h-14 w-20 rounded-full bg-white/28 blur-sm" />
-      <div className="absolute left-[26%] top-20 h-9 w-24 rounded-full bg-white/20 blur-sm" />
-      <div className="absolute right-[32%] top-24 h-10 w-28 rounded-full bg-white/18 blur-sm" />
-      <div className="absolute right-[38%] top-19 h-8 w-16 rounded-full bg-white/16 blur-sm" />
+            {/* Clouds */}
+            <div className="absolute left-[6%] top-12 h-12 w-36 rounded-full bg-white/35 blur-sm" />
+            <div className="absolute left-[11%] top-10 h-14 w-20 rounded-full bg-white/28 blur-sm" />
+            <div className="absolute left-[26%] top-20 h-9 w-24 rounded-full bg-white/20 blur-sm" />
+            <div className="absolute right-[32%] top-24 h-10 w-28 rounded-full bg-white/18 blur-sm" />
+            <div className="absolute right-[38%] top-19 h-8 w-16 rounded-full bg-white/16 blur-sm" />
 
-      {/* Distant blue-green haze */}
-      <div className="absolute bottom-44 left-0 h-16 w-full bg-[linear-gradient(to_bottom,rgba(133,153,114,0.12),rgba(133,153,114,0.28))] blur-md" />
+            {/* Distant blue-green haze */}
+            <div className="absolute bottom-44 left-0 h-16 w-full bg-[linear-gradient(to_bottom,rgba(133,153,114,0.12),rgba(133,153,114,0.28))] blur-md" />
 
-      {/* Mountains back */}
-      <div className="absolute bottom-44 left-[-6%] h-24 w-[32%] rounded-tr-[150px] bg-[#97A86D]/35" />
-      <div className="absolute bottom-46 left-[15%] h-28 w-[28%] rounded-t-[160px] bg-[#889A60]/35" />
-      <div className="absolute bottom-45 right-[18%] h-24 w-[26%] rounded-t-[130px] bg-[#8CA064]/32" />
-      <div className="absolute bottom-45 right-[-8%] h-28 w-[34%] rounded-tl-[160px] bg-[#7C9259]/35" />
+            {/* Mountains back */}
+            <div className="absolute bottom-44 left-[-6%] h-24 w-[32%] rounded-tr-[150px] bg-[#97A86D]/35" />
+            <div className="absolute bottom-46 left-[15%] h-28 w-[28%] rounded-t-[160px] bg-[#889A60]/35" />
+            <div className="absolute bottom-45 right-[18%] h-24 w-[26%] rounded-t-[130px] bg-[#8CA064]/32" />
+            <div className="absolute bottom-45 right-[-8%] h-28 w-[34%] rounded-tl-[160px] bg-[#7C9259]/35" />
 
-      {/* Mountains front */}
-      <div className="absolute bottom-38 left-[-4%] h-24 w-[38%] rounded-tr-[170px] bg-[#7E9155]/45" />
-      <div className="absolute bottom-38 left-[22%] h-20 w-[22%] rounded-t-[120px] bg-[#6F824A]/45" />
-      <div className="absolute bottom-38 right-[14%] h-22 w-[24%] rounded-t-[130px] bg-[#73884E]/42" />
-      <div className="absolute bottom-38 right-[-5%] h-24 w-[30%] rounded-tl-[150px] bg-[#6A7D46]/42" />
+            {/* Mountains front */}
+            <div className="absolute bottom-38 left-[-4%] h-24 w-[38%] rounded-tr-[170px] bg-[#7E9155]/45" />
+            <div className="absolute bottom-38 left-[22%] h-20 w-[22%] rounded-t-[120px] bg-[#6F824A]/45" />
+            <div className="absolute bottom-38 right-[14%] h-22 w-[24%] rounded-t-[130px] bg-[#73884E]/42" />
+            <div className="absolute bottom-38 right-[-5%] h-24 w-[30%] rounded-tl-[150px] bg-[#6A7D46]/42" />
 
-      {/* Tree line */}
-      <div className="absolute bottom-34 left-0 h-10 w-full bg-[linear-gradient(to_right,#5F7442,#73874D,#617746)] opacity-70" />
-      <div className="absolute bottom-33 left-0 h-3 w-full bg-[repeating-linear-gradient(90deg,#4E6135_0px,#4E6135_10px,#647A43_10px,#647A43_18px)] opacity-40" />
+            {/* Tree line */}
+            <div className="absolute bottom-34 left-0 h-10 w-full bg-[linear-gradient(to_right,#5F7442,#73874D,#617746)] opacity-70" />
+            <div className="absolute bottom-33 left-0 h-3 w-full bg-[repeating-linear-gradient(90deg,#4E6135_0px,#4E6135_10px,#647A43_10px,#647A43_18px)] opacity-40" />
 
-      {/* Far field */}
-      <div className="absolute bottom-24 left-0 h-24 w-full bg-[linear-gradient(to_bottom,#C8DE86,#98C85D)]" />
+            {/* Far field */}
+            <div className="absolute bottom-24 left-0 h-24 w-full bg-[linear-gradient(to_bottom,#C8DE86,#98C85D)]" />
 
-      {/* Water strips in distance */}
-      <div className="absolute bottom-28 left-[6%] h-3 w-[14%] rounded-full bg-[#E7F1DA]/35 blur-[1px]" />
-      <div className="absolute bottom-26 left-[28%] h-3 w-[12%] rounded-full bg-[#EAF3DD]/30 blur-[1px]" />
-      <div className="absolute bottom-27 right-[18%] h-3 w-[16%] rounded-full bg-[#EEF6E5]/28 blur-[1px]" />
+            {/* Water strips in distance */}
+            <div className="absolute bottom-28 left-[6%] h-3 w-[14%] rounded-full bg-[#E7F1DA]/35 blur-[1px]" />
+            <div className="absolute bottom-26 left-[28%] h-3 w-[12%] rounded-full bg-[#EAF3DD]/30 blur-[1px]" />
+            <div className="absolute bottom-27 right-[18%] h-3 w-[16%] rounded-full bg-[#EEF6E5]/28 blur-[1px]" />
 
-      {/* Curved paddy lines */}
-      <div className="absolute bottom-20 left-[-10%] h-24 w-[52%] rounded-[100%] border-t-[14px] border-[#C3DE79]/75" />
-      <div className="absolute bottom-12 left-[4%] h-28 w-[56%] rounded-[100%] border-t-[16px] border-[#A8D863]/70" />
-      <div className="absolute bottom-16 right-[-8%] h-28 w-[56%] rounded-[100%] border-t-[16px] border-[#B8DE72]/68" />
-      <div className="absolute bottom-6 right-[7%] h-28 w-[46%] rounded-[100%] border-t-[13px] border-[#93CE53]/58" />
+            {/* Curved paddy lines */}
+            <div className="absolute bottom-20 left-[-10%] h-24 w-[52%] rounded-[100%] border-t-[14px] border-[#C3DE79]/75" />
+            <div className="absolute bottom-12 left-[4%] h-28 w-[56%] rounded-[100%] border-t-[16px] border-[#A8D863]/70" />
+            <div className="absolute bottom-16 right-[-8%] h-28 w-[56%] rounded-[100%] border-t-[16px] border-[#B8DE72]/68" />
+            <div className="absolute bottom-6 right-[7%] h-28 w-[46%] rounded-[100%] border-t-[13px] border-[#93CE53]/58" />
 
-      {/* Mid field fills */}
-      <div className="absolute bottom-0 left-0 h-36 w-full bg-[linear-gradient(to_bottom,#7CC04F_0%,#6CB047_42%,#5A963C_100%)]" />
-      <div className="absolute bottom-0 left-0 h-24 w-full opacity-70 bg-[repeating-linear-gradient(90deg,#73BA49_0px,#73BA49_78px,#67AE43_78px,#67AE43_156px)]" />
+            {/* Mid field fills */}
+            <div className="absolute bottom-0 left-0 h-36 w-full bg-[linear-gradient(to_bottom,#7CC04F_0%,#6CB047_42%,#5A963C_100%)]" />
+            <div className="absolute bottom-0 left-0 h-24 w-full opacity-70 bg-[repeating-linear-gradient(90deg,#73BA49_0px,#73BA49_78px,#67AE43_78px,#67AE43_156px)]" />
 
-      {/* Pilapil */}
-      
+            {/* Water reflection patches */}
+            <div className="absolute bottom-18 left-[7%] h-5 w-[22%] rounded-full bg-[#E8F3D9]/28 blur-[1px]" />
+            <div className="absolute bottom-12 left-[34%] h-5 w-[18%] rounded-full bg-[#EDF6E3]/24 blur-[1px]" />
+            <div className="absolute bottom-14 right-[10%] h-5 w-[20%] rounded-full bg-[#E7F1D8]/24 blur-[1px]" />
 
-      {/* Water reflection patches */}
-      <div className="absolute bottom-18 left-[7%] h-5 w-[22%] rounded-full bg-[#E8F3D9]/28 blur-[1px]" />
-      <div className="absolute bottom-12 left-[34%] h-5 w-[18%] rounded-full bg-[#EDF6E3]/24 blur-[1px]" />
-      <div className="absolute bottom-14 right-[10%] h-5 w-[20%] rounded-full bg-[#E7F1D8]/24 blur-[1px]" />
+            {/* Bahay kubo */}
+            <div className="absolute bottom-28 right-[18%] opacity-75">
+              <div className="relative h-24 w-28">
+                <div className="absolute left-5 top-2 h-0 w-0 border-l-[22px] border-r-[22px] border-b-[18px] border-l-transparent border-r-transparent border-b-[#70461F]" />
+                <div className="absolute left-2 top-[17px] h-0 w-0 border-l-[30px] border-r-[30px] border-b-[20px] border-l-transparent border-r-transparent border-b-[#8B5A2B]" />
+                <div className="absolute left-4 top-9 h-10 w-16 rounded-[2px] bg-[#84552D]" />
+                <div className="absolute left-7 top-12 h-7 w-4 bg-[#6A4424]" />
+                <div className="absolute left-6 top-[50px] h-[34px] w-[2px] bg-[#593A1E]" />
+                <div className="absolute left-18 top-[50px] h-[34px] w-[2px] bg-[#593A1E]" />
+                <div className="absolute left-3 top-[40px] h-[2px] w-[18px] bg-[#A87847]/70" />
+                <div className="absolute right-2 top-[40px] h-[2px] w-[18px] bg-[#A87847]/70" />
+              </div>
+            </div>
 
-      {/* Bahay kubo */}
-      <div className="absolute bottom-28 right-[18%] opacity-75">
-        <div className="relative h-24 w-28">
-          <div className="absolute left-5 top-2 h-0 w-0 border-l-[22px] border-r-[22px] border-b-[18px] border-l-transparent border-r-transparent border-b-[#70461F]" />
-          <div className="absolute left-2 top-[17px] h-0 w-0 border-l-[30px] border-r-[30px] border-b-[20px] border-l-transparent border-r-transparent border-b-[#8B5A2B]" />
-          <div className="absolute left-4 top-9 h-10 w-16 rounded-[2px] bg-[#84552D]" />
-          <div className="absolute left-7 top-12 h-7 w-4 bg-[#6A4424]" />
-          <div className="absolute left-6 top-[50px] h-[34px] w-[2px] bg-[#593A1E]" />
-          <div className="absolute left-18 top-[50px] h-[34px] w-[2px] bg-[#593A1E]" />
-          <div className="absolute left-3 top-[40px] h-[2px] w-[18px] bg-[#A87847]/70" />
-          <div className="absolute right-2 top-[40px] h-[2px] w-[18px] bg-[#A87847]/70" />
-        </div>
-      </div>
+            {/* Left coconut tree */}
+            <div className="absolute bottom-30 left-[10%] opacity-65">
+              <div className="relative h-28 w-20">
+                <div className="absolute bottom-0 left-9 h-24 w-[4px] rotate-[9deg] rounded-full bg-[#6D4826]" />
+                <div className="absolute left-1 top-4 h-12 w-16 rounded-full border-t-[12px] border-[#4E8D3F] rotate-[-34deg]" />
+                <div className="absolute left-5 top-0 h-12 w-16 rounded-full border-t-[12px] border-[#4B893B] rotate-[3deg]" />
+                <div className="absolute left-8 top-5 h-12 w-16 rounded-full border-t-[12px] border-[#579845] rotate-[36deg]" />
+                <div className="absolute left-2 top-8 h-12 w-16 rounded-full border-t-[10px] border-[#5C9D48] rotate-[-8deg]" />
+              </div>
+            </div>
 
-      {/* Left coconut tree */}
-      <div className="absolute bottom-30 left-[10%] opacity-65">
-        <div className="relative h-28 w-20">
-          <div className="absolute bottom-0 left-9 h-24 w-[4px] rotate-[9deg] rounded-full bg-[#6D4826]" />
-          <div className="absolute left-1 top-4 h-12 w-16 rounded-full border-t-[12px] border-[#4E8D3F] rotate-[-34deg]" />
-          <div className="absolute left-5 top-0 h-12 w-16 rounded-full border-t-[12px] border-[#4B893B] rotate-[3deg]" />
-          <div className="absolute left-8 top-5 h-12 w-16 rounded-full border-t-[12px] border-[#579845] rotate-[36deg]" />
-          <div className="absolute left-2 top-8 h-12 w-16 rounded-full border-t-[10px] border-[#5C9D48] rotate-[-8deg]" />
-        </div>
-      </div>
+            {/* Right coconut tree */}
+            <div className="absolute bottom-28 right-[7%] opacity-60">
+              <div className="relative h-32 w-20">
+                <div className="absolute bottom-0 left-9 h-28 w-[4px] -rotate-[10deg] rounded-full bg-[#694624]" />
+                <div className="absolute left-0 top-6 h-12 w-16 rounded-full border-t-[12px] border-[#4D8B3E] rotate-[-38deg]" />
+                <div className="absolute left-4 top-2 h-12 w-16 rounded-full border-t-[12px] border-[#4B893A] rotate-[0deg]" />
+                <div className="absolute left-8 top-7 h-12 w-16 rounded-full border-t-[12px] border-[#599746] rotate-[35deg]" />
+                <div className="absolute left-3 top-10 h-12 w-16 rounded-full border-t-[10px] border-[#62A14D] rotate-[-6deg]" />
+              </div>
+            </div>
 
-      {/* Right coconut tree */}
-      <div className="absolute bottom-28 right-[7%] opacity-60">
-        <div className="relative h-32 w-20">
-          <div className="absolute bottom-0 left-9 h-28 w-[4px] -rotate-[10deg] rounded-full bg-[#694624]" />
-          <div className="absolute left-0 top-6 h-12 w-16 rounded-full border-t-[12px] border-[#4D8B3E] rotate-[-38deg]" />
-          <div className="absolute left-4 top-2 h-12 w-16 rounded-full border-t-[12px] border-[#4B893A] rotate-[0deg]" />
-          <div className="absolute left-8 top-7 h-12 w-16 rounded-full border-t-[12px] border-[#599746] rotate-[35deg]" />
-          <div className="absolute left-3 top-10 h-12 w-16 rounded-full border-t-[10px] border-[#62A14D] rotate-[-6deg]" />
-        </div>
-      </div>
+            {/* Banana leaf silhouette near kubo */}
+            <div className="absolute bottom-24 right-[29%] opacity-45">
+              <div className="relative h-20 w-20">
+                <div className="absolute bottom-0 left-9 h-12 w-[2px] bg-[#5B7E3F]" />
+                <div className="absolute left-1 top-3 h-10 w-12 rounded-full border-t-[12px] border-[#6FA553] rotate-[-28deg]" />
+                <div className="absolute left-7 top-0 h-10 w-12 rounded-full border-t-[12px] border-[#629B49] rotate-[18deg]" />
+              </div>
+            </div>
 
-      {/* Banana leaf silhouette near kubo */}
-      <div className="absolute bottom-24 right-[29%] opacity-45">
-        <div className="relative h-20 w-20">
-          <div className="absolute bottom-0 left-9 h-12 w-[2px] bg-[#5B7E3F]" />
-          <div className="absolute left-1 top-3 h-10 w-12 rounded-full border-t-[12px] border-[#6FA553] rotate-[-28deg]" />
-          <div className="absolute left-7 top-0 h-10 w-12 rounded-full border-t-[12px] border-[#629B49] rotate-[18deg]" />
-        </div>
-      </div>
+            {/* Left foreground rice */}
+            <div className="absolute bottom-6 left-[1.5%] flex items-end gap-[4px] opacity-95">
+              {Array.from({ length: 22 }).map((_, i) => (
+                <div
+                  key={`left-rice-${i}`}
+                  className="relative"
+                  style={{ transform: `rotate(${i % 2 === 0 ? -13 : 9}deg)` }}
+                >
+                  <span
+                    className="block w-[3px] rounded-full bg-[#3D7B2E]"
+                    style={{ height: `${48 + (i % 6) * 8}px` }}
+                  />
+                  <span className="absolute right-[-7px] top-[8px] h-4 w-2 rounded-full bg-[#E8CB63]/90 rotate-[26deg]" />
+                  <span className="absolute right-[-9px] top-[15px] h-4 w-2 rounded-full bg-[#E2C24D]/85 rotate-[30deg]" />
+                  <span className="absolute right-[-8px] top-[22px] h-4 w-2 rounded-full bg-[#E7CD69]/80 rotate-[24deg]" />
+                  <span className="absolute right-[-7px] top-[29px] h-4 w-2 rounded-full bg-[#DDBB43]/75 rotate-[20deg]" />
+                  <span className="absolute right-[-6px] top-[36px] h-4 w-2 rounded-full bg-[#E7CB61]/70 rotate-[16deg]" />
+                </div>
+              ))}
+            </div>
 
-      {/* Left foreground rice */}
-      <div className="absolute bottom-6 left-[1.5%] flex items-end gap-[4px] opacity-95">
-        {Array.from({ length: 22 }).map((_, i) => (
-          <div
-            key={`left-rice-${i}`}
-            className="relative"
-            style={{ transform: `rotate(${i % 2 === 0 ? -13 : 9}deg)` }}
-          >
-            <span
-              className="block w-[3px] rounded-full bg-[#3D7B2E]"
-              style={{ height: `${48 + (i % 6) * 8}px` }}
-            />
-            <span className="absolute right-[-7px] top-[8px] h-4 w-2 rounded-full bg-[#E8CB63]/90 rotate-[26deg]" />
-            <span className="absolute right-[-9px] top-[15px] h-4 w-2 rounded-full bg-[#E2C24D]/85 rotate-[30deg]" />
-            <span className="absolute right-[-8px] top-[22px] h-4 w-2 rounded-full bg-[#E7CD69]/80 rotate-[24deg]" />
-            <span className="absolute right-[-7px] top-[29px] h-4 w-2 rounded-full bg-[#DDBB43]/75 rotate-[20deg]" />
-            <span className="absolute right-[-6px] top-[36px] h-4 w-2 rounded-full bg-[#E7CB61]/70 rotate-[16deg]" />
+            {/* Right foreground rice */}
+            <div className="absolute bottom-6 right-[1.5%] flex items-end gap-[4px] opacity-95">
+              {Array.from({ length: 24 }).map((_, i) => (
+                <div
+                  key={`right-rice-${i}`}
+                  className="relative"
+                  style={{ transform: `rotate(${i % 2 === 0 ? 12 : -9}deg)` }}
+                >
+                  <span
+                    className="block w-[3px] rounded-full bg-[#3F7A2D]"
+                    style={{ height: `${50 + (i % 5) * 9}px` }}
+                  />
+                  <span className="absolute left-[-8px] top-[8px] h-4 w-2 rounded-full bg-[#E8CC62]/90 -rotate-[24deg]" />
+                  <span className="absolute left-[-10px] top-[16px] h-4 w-2 rounded-full bg-[#E0C04A]/85 -rotate-[28deg]" />
+                  <span className="absolute left-[-9px] top-[24px] h-4 w-2 rounded-full bg-[#E9D172]/80 -rotate-[20deg]" />
+                  <span className="absolute left-[-8px] top-[32px] h-4 w-2 rounded-full bg-[#DDBD47]/75 -rotate-[18deg]" />
+                  <span className="absolute left-[-7px] top-[40px] h-4 w-2 rounded-full bg-[#E8CC63]/68 -rotate-[14deg]" />
+                </div>
+              ))}
+            </div>
+
+            {/* Mid foreground depth grass */}
+            <div className="absolute bottom-3 left-1/2 flex -translate-x-1/2 items-end gap-[3px] opacity-60">
+              {Array.from({ length: 30 }).map((_, i) => (
+                <span
+                  key={`mid-depth-${i}`}
+                  className="block w-[2px] rounded-full bg-[#4E8C39]"
+                  style={{
+                    height: `${14 + (i % 6) * 5}px`,
+                    transform: `rotate(${i % 2 === 0 ? -8 : 8}deg)`,
+                  }}
+                />
+              ))}
+            </div>
+
+            {/* Decorative vignette for depth */}
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_45%,rgba(94,68,28,0.10)_100%)]" />
+
+            {/* Readability overlay */}
+            <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(246,238,220,0.96)_0%,rgba(246,238,220,0.9)_32%,rgba(246,238,220,0.62)_68%,rgba(246,238,220,0.76)_100%)]" />
           </div>
-        ))}
-      </div>
-
-      {/* Right foreground rice */}
-      <div className="absolute bottom-6 right-[1.5%] flex items-end gap-[4px] opacity-95">
-        {Array.from({ length: 24 }).map((_, i) => (
-          <div
-            key={`right-rice-${i}`}
-            className="relative"
-            style={{ transform: `rotate(${i % 2 === 0 ? 12 : -9}deg)` }}
-          >
-            <span
-              className="block w-[3px] rounded-full bg-[#3F7A2D]"
-              style={{ height: `${50 + (i % 5) * 9}px` }}
-            />
-            <span className="absolute left-[-8px] top-[8px] h-4 w-2 rounded-full bg-[#E8CC62]/90 -rotate-[24deg]" />
-            <span className="absolute left-[-10px] top-[16px] h-4 w-2 rounded-full bg-[#E0C04A]/85 -rotate-[28deg]" />
-            <span className="absolute left-[-9px] top-[24px] h-4 w-2 rounded-full bg-[#E9D172]/80 -rotate-[20deg]" />
-            <span className="absolute left-[-8px] top-[32px] h-4 w-2 rounded-full bg-[#DDBD47]/75 -rotate-[18deg]" />
-            <span className="absolute left-[-7px] top-[40px] h-4 w-2 rounded-full bg-[#E8CC63]/68 -rotate-[14deg]" />
-          </div>
-        ))}
-      </div>
-
-      {/* Mid foreground depth grass */}
-      <div className="absolute bottom-3 left-1/2 flex -translate-x-1/2 items-end gap-[3px] opacity-60">
-        {Array.from({ length: 30 }).map((_, i) => (
-          <span
-            key={`mid-depth-${i}`}
-            className="block w-[2px] rounded-full bg-[#4E8C39]"
-            style={{
-              height: `${14 + (i % 6) * 5}px`,
-              transform: `rotate(${i % 2 === 0 ? -8 : 8}deg)`,
-            }}
-          />
-        ))}
-      </div>
-
-      {/* Decorative vignette for depth */}
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_45%,rgba(94,68,28,0.10)_100%)]" />
-
-      {/* Readability overlay */}
-      <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(246,238,220,0.96)_0%,rgba(246,238,220,0.9)_32%,rgba(246,238,220,0.62)_68%,rgba(246,238,220,0.76)_100%)]" />
-    </div>
-  )}
-
-  {/* Content */}
-  <div className="container relative z-10 mx-auto px-4 py-10 lg:py-14">
-    <div className="max-w-4xl space-y-5">
-      <WoodSign>
-        {marketMode === "products" ? "Sibol Marketplace" : "Harvest Investment"}
-      </WoodSign>
-
-      <div className="space-y-3">
-        <h1 className="text-3xl font-black tracking-tight sm:text-4xl lg:text-5xl text-[#2F1F10]">
-          {marketMode === "products"
-            ? "Direct buying from cooperatives and farmers"
-            : "Fund real harvests and earn from net profit"}
-        </h1>
-
-        <p className="max-w-2xl text-[#694F33] text-sm sm:text-base leading-relaxed">
-          {marketMode === "products"
-            ? "Browse rice and other agricultural products with clearer pricing, visible origin, and a more direct farm-to-buyer flow."
-            : "Support harvest campaigns with small investments. Returns come from actual net profit after the harvest is sold — not fixed guaranteed ROI."}
-        </p>
-      </div>
-
-      <div className="flex flex-wrap gap-3 pt-2 text-sm">
-        {marketMode === "products" ? (
-          <>
-            <div className="inline-flex items-center gap-2 rounded-full border border-[#B8D6B3] bg-[#E9F6E5] px-3 py-2 font-medium text-[#2E6C3C] shadow-sm">
-              <ShieldCheck className="h-4 w-4" />
-              Verified cooperative listings
-            </div>
-
-            <div className="inline-flex items-center gap-2 rounded-full border border-[#E5C97B] bg-[#FFF0BF] px-3 py-2 font-medium text-[#7A5618] shadow-sm">
-              <MapPin className="h-4 w-4" />
-              Visible source location
-            </div>
-
-            <div className="inline-flex items-center gap-2 rounded-full border border-[#D8C7A0] bg-[#FFF8E7] px-3 py-2 font-medium text-[#694F33] shadow-sm">
-              <Store className="h-4 w-4" />
-              Direct and pooled orders
-            </div>
-          </>
-        ) : (
-          <>
-            <div className="inline-flex items-center gap-2 rounded-full border border-[#B8D6B3] bg-[#E9F6E5] px-3 py-2 font-medium text-[#2E6C3C] shadow-sm">
-              <Sprout className="h-4 w-4" />
-              Farm funding from ₱500
-            </div>
-
-            <div className="inline-flex items-center gap-2 rounded-full border border-[#E5C97B] bg-[#FFF0BF] px-3 py-2 font-medium text-[#7A5618] shadow-sm">
-              <TrendingUp className="h-4 w-4" />
-              Profit-sharing model
-            </div>
-
-            <div className="inline-flex items-center gap-2 rounded-full border border-[#D8C7A0] bg-[#FFF8E7] px-3 py-2 font-medium text-[#694F33] shadow-sm">
-              <Wallet className="h-4 w-4" />
-              No fixed guaranteed payout
-            </div>
-          </>
         )}
-      </div>
-    </div>
-  </div>
-</header>
+
+        {/* Content */}
+        <div className="container relative z-10 mx-auto px-4 py-10 lg:py-14">
+          <div className="max-w-4xl space-y-5">
+            <WoodSign>
+              {marketMode === "products" ? "Sibol Marketplace" : "Harvest Investment"}
+            </WoodSign>
+
+            <div className="space-y-3">
+              <h1 className="text-3xl font-black tracking-tight sm:text-4xl lg:text-5xl text-[#2F1F10]">
+                {marketMode === "products"
+                  ? "Direct buying from cooperatives and farmers"
+                  : "Fund real harvests and earn from net profit"}
+              </h1>
+
+              <p className="max-w-2xl text-[#694F33] text-sm sm:text-base leading-relaxed">
+                {marketMode === "products"
+                  ? "Browse rice and other agricultural products with clearer pricing, visible origin, and a more direct farm-to-buyer flow."
+                  : "Support harvest campaigns with small investments. Returns come from actual net profit after the harvest is sold — not fixed guaranteed ROI."}
+              </p>
+            </div>
+
+            <div className="flex flex-wrap gap-3 pt-2 text-sm">
+              {marketMode === "products" ? (
+                <>
+                  <div className="inline-flex items-center gap-2 rounded-full border border-[#B8D6B3] bg-[#E9F6E5] px-3 py-2 font-medium text-[#2E6C3C] shadow-sm">
+                    <ShieldCheck className="h-4 w-4" />
+                    Verified cooperative listings
+                  </div>
+
+                  <div className="inline-flex items-center gap-2 rounded-full border border-[#E5C97B] bg-[#FFF0BF] px-3 py-2 font-medium text-[#7A5618] shadow-sm">
+                    <MapPin className="h-4 w-4" />
+                    Visible source location
+                  </div>
+
+                  <div className="inline-flex items-center gap-2 rounded-full border border-[#D8C7A0] bg-[#FFF8E7] px-3 py-2 font-medium text-[#694F33] shadow-sm">
+                    <Store className="h-4 w-4" />
+                    Direct and pooled orders
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="inline-flex items-center gap-2 rounded-full border border-[#B8D6B3] bg-[#E9F6E5] px-3 py-2 font-medium text-[#2E6C3C] shadow-sm">
+                    <Sprout className="h-4 w-4" />
+                    Farm funding from ₱500
+                  </div>
+
+                  <div className="inline-flex items-center gap-2 rounded-full border border-[#E5C97B] bg-[#FFF0BF] px-3 py-2 font-medium text-[#7A5618] shadow-sm">
+                    <TrendingUp className="h-4 w-4" />
+                    Profit-sharing model
+                  </div>
+
+                  <div className="inline-flex items-center gap-2 rounded-full border border-[#D8C7A0] bg-[#FFF8E7] px-3 py-2 font-medium text-[#694F33] shadow-sm">
+                    <Wallet className="h-4 w-4" />
+                    No fixed guaranteed payout
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      </header>
 
       <main className="flex-1">
         <section className="container mx-auto px-4 py-6">
@@ -1285,7 +1294,7 @@ export default function MarketplacePage() {
                   <div key={product.id} className="space-y-2">
                     <ProductCard 
                       {...product} 
-                      rating={product.rating ?? 4.5}  // Provide default rating if undefined
+                      rating={product.rating ?? 4.5}
                     />
                     <div className="flex flex-wrap gap-2 px-1">
                       {product.verified && (
