@@ -750,9 +750,29 @@ export default function MarketplacePage() {
         console.log("Demo mode: sender and recipient are the same, skipping on-chain transfer.");
       }
 
+      // Call investInHarvest - check what it returns
       const result = investInHarvest(harvestId, amount);
+      
+      // Handle different possible return types
+      let updatedCampaign;
+      if (Array.isArray(result)) {
+        // If it returns an array, assume it's the updated campaigns list
+        updatedCampaign = result.find(campaign => campaign.id === harvestId);
+        if (!updatedCampaign) {
+          throw new Error("Campaign not found in updated list");
+        }
+      } else if (result && typeof result === 'object' && 'campaign' in result) {
+        // If it returns an object with campaign property
+        updatedCampaign = (result as any).campaign;
+      } else {
+        // If it returns the campaign directly
+        updatedCampaign = result;
+      }
 
-      const updatedCampaign = result.campaign;
+      if (!updatedCampaign) {
+        throw new Error("Failed to get updated campaign information");
+      }
+
       const nextFundedAmount = updatedCampaign.fundedAmount;
 
       const nextStatus =
