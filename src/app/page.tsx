@@ -404,7 +404,7 @@ export default function LandingPage() {
                 </motion.div>
 
                 <motion.div
-                  className="absolute -bottom-6 right-4 hidden rounded-2xl border bg-white/95 p-3 shadow-xl backdrop-blur md:block"
+                  className="absolute bottom-40 -right-3 hidden rounded-2xl border bg-white/95 p-3 shadow-xl backdrop-blur md:block"
                   animate={{ y: [0, 6, 0] }}
                   transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
                 >
